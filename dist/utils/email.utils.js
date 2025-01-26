@@ -1,0 +1,2 @@
+"use strict";
+// This is where all the email related utilities for nodemailer will be

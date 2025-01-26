@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/.79eb847d271f6cee91bba08295217363366ac1be-audit.json",
+    "files": [
+        {
+            "date": 1737419965360,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/error-2025-01-21.log",
+            "hash": "2fe9d47f944f72cbfb27cba74f1a4bc3b937903080b1d34924246cb0eb78f79a"
+        },
+        {
+            "date": 1737651356843,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/error-2025-01-23.log",
+            "hash": "db1a724755952a703640f6520671320ce84700fd4684dc4f3bcd45ca812e9abb"
+        }
+    ],
+    "hashType": "sha256"
+}

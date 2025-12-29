@@ -2,16 +2,13 @@ import z from "zod";
 import { Request, Response, NextFunction } from "express";
 import zodErrorHandler from "./zod.error";
 
-const ZPostCreate = z.object({
-    title: z.string().min(3).max(100),
-    content: z.string().min(1000),
-    tags: z.array(z.string()).max(8),
-    category: z.string().min(3).max(63),
+const ZTagCreate = z.object({
+    title: z.string().min(2).max(32),
 });
 
 const validate = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        ZPostCreate.parse(req.body)
+        ZTagCreate.parse(req.body)
         next()
     } catch (error) {
         zodErrorHandler(error, next)

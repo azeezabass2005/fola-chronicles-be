@@ -2,7 +2,7 @@ import {
     Model,
     HydratedDocument,
     ClientSession,
-    FilterQuery, PipelineStage, Aggregate,
+    FilterQuery, Aggregate, PipelineStage,
 } from "mongoose";
 
 /**
@@ -103,7 +103,7 @@ class DBService<T> {
      */
     public count(query: any = {}): Promise<number> {
         return this.executeWithErrorHandling(() =>
-                this.Model.countDocuments(query)
+                this.Model.countDocuments(query).maxTimeMS(30000)
             , 'Count operation failed');
     }
 
@@ -114,7 +114,20 @@ class DBService<T> {
      * @param {ClientSession} [session=null] Optional database session
      * @returns {Promise<any>} Updated document
      */
-    public update(id: string, data: any, session: ClientSession | null = null): Promise<any> {
+    public update(query: Partial<T>, data: any, session: ClientSession | null = null): Promise<any> {
+        return this.executeWithErrorHandling(() =>
+                this.Model.findByIdAndUpdate(query, data, { new: true }).session(session)
+            , 'Update by ID failed');
+    }
+
+    /**
+     * Updates a document by ID
+     * @param {string} id Document ID to update
+     * @param {any} data Update data
+     * @param {ClientSession} [session=null] Optional database session
+     * @returns {Promise<any>} Updated document
+     */
+    public updateById(id: string, data: any, session: ClientSession | null = null): Promise<any> {
         return this.executeWithErrorHandling(() =>
                 this.Model.findByIdAndUpdate(id, data, { new: true }).session(session)
             , 'Update by ID failed');

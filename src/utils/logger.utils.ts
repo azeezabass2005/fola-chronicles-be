@@ -67,6 +67,18 @@ const errorFileTransport: DailyRotateFile = new DailyRotateFile({
 });
 
 /**
+ * HTTP log file transport with daily rotation
+ * @type {DailyRotateFile}
+ */
+const httpFileTransport: DailyRotateFile = new DailyRotateFile({
+    filename: path.join(process.cwd(), 'logs', 'http-%DATE%.log'),
+    datePattern: 'YYYY-MM-DD',
+    level: 'http',
+    maxSize: '20m',
+    maxFiles: '14d'
+});
+
+/**
  * Combined log file transport with daily rotation
  * @type {DailyRotateFile}
  */
@@ -88,6 +100,7 @@ const logger: winston.Logger = winston.createLogger({
     transports: [
         consoleTransport,
         errorFileTransport,
+        httpFileTransport,
         combinedFileTransport
     ],
     exceptionHandlers: [

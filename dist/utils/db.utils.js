@@ -76,7 +76,7 @@ class DBService {
      * @returns {Promise<number>} Number of matching documents
      */
     count(query = {}) {
-        return this.executeWithErrorHandling(() => this.Model.countDocuments(query), 'Count operation failed');
+        return this.executeWithErrorHandling(() => this.Model.countDocuments(query).maxTimeMS(30000), 'Count operation failed');
     }
     /**
      * Updates a document by ID
@@ -85,7 +85,17 @@ class DBService {
      * @param {ClientSession} [session=null] Optional database session
      * @returns {Promise<any>} Updated document
      */
-    update(id, data, session = null) {
+    update(query, data, session = null) {
+        return this.executeWithErrorHandling(() => this.Model.findByIdAndUpdate(query, data, { new: true }).session(session), 'Update by ID failed');
+    }
+    /**
+     * Updates a document by ID
+     * @param {string} id Document ID to update
+     * @param {any} data Update data
+     * @param {ClientSession} [session=null] Optional database session
+     * @returns {Promise<any>} Updated document
+     */
+    updateById(id, data, session = null) {
         return this.executeWithErrorHandling(() => this.Model.findByIdAndUpdate(id, data, { new: true }).session(session), 'Update by ID failed');
     }
     /**

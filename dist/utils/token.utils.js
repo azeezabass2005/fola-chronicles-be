@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.TokenUtils = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const interface_1 = require("./interface");
@@ -40,7 +41,18 @@ class TokenUtils {
             .map(b => b.toString(16).padStart(2, '0'))
             .join('');
     }
+    /**
+     * Generates a random refresh token id for refresh token persistent storage
+     * @returns Randomly generated token string
+     */
+    static generateRefreshTokenId() {
+        return this.generateRandomToken(32);
+    }
+    static getRefreshTokenExpiry() {
+        return this.addDaysToDate(7);
+    }
 }
+exports.TokenUtils = TokenUtils;
 /**
  * Represents a token management class with advanced features
  */
@@ -62,10 +74,11 @@ class Token {
         type: interface_1.TokenType.ACCESS,
         expiresIn: '168h'
     }) {
-        const { type = interface_1.TokenType.ACCESS, expiresIn = '168h' } = options;
+        const { type = interface_1.TokenType.ACCESS, expiresIn = '1h' } = options;
         const payload = {
             userId: user === null || user === void 0 ? void 0 : user._id,
             email: user === null || user === void 0 ? void 0 : user.email,
+            role: user === null || user === void 0 ? void 0 : user.role,
             username: user === null || user === void 0 ? void 0 : user.username,
         };
         return jsonwebtoken_1.default.sign({
@@ -123,7 +136,7 @@ class Token {
      * @throws {Error} If TOKEN_SECRET is not set
      */
     getSecretKey() {
-        const secret = process.env.TOKEN_SECRET;
+        const secret = process.env["JWT_SECRET"];
         if (!secret) {
             throw new Error('TOKEN_SECRET is not defined in environment variables');
         }

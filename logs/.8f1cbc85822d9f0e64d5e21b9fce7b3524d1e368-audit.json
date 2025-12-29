@@ -6,14 +6,59 @@
     "auditLog": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/.8f1cbc85822d9f0e64d5e21b9fce7b3524d1e368-audit.json",
     "files": [
         {
-            "date": 1737419965366,
-            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-01-21.log",
-            "hash": "8d69dcfc172807fc179ce6ded19eaa336679595e97365f05c6dc21bdb525b5ac"
+            "date": 1764761580010,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-03.log",
+            "hash": "be3c5a8890baffd7709ffa879151bcc74d769038621c949b299d1f0318c9b2ed"
         },
         {
-            "date": 1737651356850,
-            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-01-23.log",
-            "hash": "1548debffb5ee1c234193a3d16d014bbb37fd1ceaa8731a6a2f25f388389a1e5"
+            "date": 1765233024979,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-08.log",
+            "hash": "62803d0fb2ba4056d68574049b590d544ffa026bc99f47ff4b6b3c2a8863d699"
+        },
+        {
+            "date": 1765234863113,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-09.log",
+            "hash": "6b4bd4e463c9ec1455a84a449d8338c085c1e4a08baa982d2eb391124ffc6e4d"
+        },
+        {
+            "date": 1765463982529,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-11.log",
+            "hash": "e96c482b211e08b1fc9827437c190b905dcda33b4f1e39b0564f218e2b8b0591"
+        },
+        {
+            "date": 1766025593142,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-18.log",
+            "hash": "4222e371ab987303a7cafb984e55af60e228d85433a0f1d39c7ab503edb48459"
+        },
+        {
+            "date": 1766535338971,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-24.log",
+            "hash": "ac41ee0d85d44f61d9de2c6cf6469a6f4083291adcf82ad59363290482edac13"
+        },
+        {
+            "date": 1766618820190,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-25.log",
+            "hash": "e1e02679586ab0fec718f625f53f389436dbc10235a02624ed0e063a670162d0"
+        },
+        {
+            "date": 1766779166973,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-26.log",
+            "hash": "929d8555cf6f8833907ce0033fe24439e818021431770e46413ec13ed7452e13"
+        },
+        {
+            "date": 1766790853169,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-27.log",
+            "hash": "c190984648c40f54d7865d1fc4e904acad6e714a5cc94ed24b6352dde9b3102c"
+        },
+        {
+            "date": 1766876406103,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-28.log",
+            "hash": "fd7e630cb203ed73085584000522b42cbbd9b421f6060151237cc08d74ef3b7d"
+        },
+        {
+            "date": 1766962801268,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/combined-2025-12-29.log",
+            "hash": "869955046c8dde8dcc07c8db70301716c8817e95f48fee0f6af4fd14f4a85dc6"
         }
     ],
     "hashType": "sha256"

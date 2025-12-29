@@ -4,6 +4,7 @@
 export interface ITokenPayload {
     userId: string;
     email: string;
+    role: number;
     username: string;
 }
 
@@ -20,7 +21,8 @@ export interface IVerifyTokenPayload extends ITokenPayload {
 export enum TokenType {
     ACCESS = 'access',
     VERIFY = 'verify',
-    REFRESH = 'refresh'
+    REFRESH = 'refresh',
+    RESET = 'reset'
 }
 
 /**
@@ -29,4 +31,8 @@ export enum TokenType {
 export interface ITokenOptions {
     type?: TokenType;
     expiresIn?: string;
+}
+
+export interface IRefreshTokenPayload extends ITokenPayload {
+    tokenId: string;
 }

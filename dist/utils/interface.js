@@ -9,4 +9,5 @@ var TokenType;
     TokenType["ACCESS"] = "access";
     TokenType["VERIFY"] = "verify";
     TokenType["REFRESH"] = "refresh";
+    TokenType["RESET"] = "reset";
 })(TokenType || (exports.TokenType = TokenType = {}));

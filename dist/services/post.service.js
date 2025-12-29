@@ -15,6 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const db_utils_1 = __importDefault(require("../utils/db.utils"));
 const post_model_1 = __importDefault(require("../models/post.model"));
 const error_response_message_1 = __importDefault(require("../common/messages/error-response-message"));
+const tag_service_1 = __importDefault(require("./tag.service"));
+const category_service_1 = __importDefault(require("./category.service"));
 /**
  * Service class for User-related database operations
  *
@@ -31,6 +33,8 @@ class PostService extends db_utils_1.default {
     constructor(populatedFields = []) {
         // Initialize the service with User model and optional population fields
         super(post_model_1.default, populatedFields);
+        this.tagService = new tag_service_1.default();
+        this.categoryService = new category_service_1.default();
     }
     /**
      * Calculate time decay score based on post age
@@ -45,14 +49,11 @@ class PostService extends db_utils_1.default {
                     $add: [
                         1,
                         {
-                            $divide: [
-                                { $subtract: [new Date(), "$publishedAt"] },
-                                DAY_IN_MS
-                            ]
-                        }
-                    ]
-                }
-            ]
+                            $divide: [{ $subtract: [new Date(), "$publishedAt"] }, DAY_IN_MS],
+                        },
+                    ],
+                },
+            ],
         };
     }
     /**
@@ -64,24 +65,32 @@ class PostService extends db_utils_1.default {
      * @param {boolean} options.includeSameUser - Whether to include posts from the same user
      * @returns {Promise<HydratedDocument<IPost>[]>} Array of related posts
      */
-    getRelatedPosts(postId_1) {
-        return __awaiter(this, arguments, void 0, function* (postId, options = {}) {
+    getRelatedPosts(originalPost_1) {
+        return __awaiter(this, arguments, void 0, function* (originalPost, options = {}) {
             const { limit = 5, includeSameUser = false, categoryWeight = 3, // Category matching is important
             tagWeight = 2, // Tag matching is also significant
             textSimilarityWeight = 1.5, // Text similarity adds relevance
             engagementWeight = 1, // Engagement provides social proof
-            timeDecayWeight = 0.5 // Time decay slightly influences ranking
+            timeDecayWeight = 0.5, // Time decay slightly influences ranking
              } = options;
-            const originalPost = yield this.findById(postId, {
-                populate: ['user']
-            });
+            // const originalPost = await this.findById(postId, {
+            //     populate: ['user']
+            // });
             if (!originalPost) {
-                throw error_response_message_1.default.resourceNotFound('Post');
+                throw error_response_message_1.default.resourceNotFound("Post");
             }
             const pipeline = [
                 {
-                    $match: Object.assign({ _id: { $ne: originalPost._id } }, ((!includeSameUser && originalPost.user) ?
-                        { user: { $ne: originalPost.user } } : {}))
+                    $match: {
+                        $text: {
+                            $search: `${originalPost.title} ${originalPost.content}`,
+                        },
+                    },
+                },
+                {
+                    $match: Object.assign({ _id: { $ne: originalPost._id } }, (!includeSameUser && originalPost.user
+                        ? { user: { $ne: originalPost.user } }
+                        : {})),
                 },
                 {
                     $addFields: {
@@ -89,51 +98,37 @@ class PostService extends db_utils_1.default {
                             $cond: {
                                 if: { $eq: ["$category", originalPost.category] },
                                 then: categoryWeight,
-                                else: 0
-                            }
+                                else: 0,
+                            },
                         },
                         tagScore: {
                             $multiply: [
                                 {
                                     $size: {
-                                        $setIntersection: ["$tags", originalPost.tags || []]
-                                    }
+                                        $setIntersection: ["$tags", originalPost.tags || []],
+                                    },
                                 },
-                                tagWeight
-                            ]
+                                tagWeight,
+                            ],
                         },
-                        // Text similarity score using text index
                         textScore: {
-                            $multiply: [
-                                { $meta: "textScore" },
-                                textSimilarityWeight
-                            ]
+                            $multiply: [{ $meta: "textScore" }, textSimilarityWeight],
                         },
                         engagementScore: {
                             $multiply: [
                                 {
                                     $divide: [
                                         { $add: ["$viewCount", { $multiply: ["$likeCount", 2] }] },
-                                        100
-                                    ]
+                                        100,
+                                    ],
                                 },
-                                engagementWeight
-                            ]
+                                engagementWeight,
+                            ],
                         },
                         timeDecayScore: {
-                            $multiply: [
-                                this.getTimeDecayExpression(),
-                                timeDecayWeight
-                            ]
-                        }
-                    }
-                },
-                {
-                    $match: {
-                        $text: {
-                            $search: `${originalPost.title} ${originalPost.content}`
-                        }
-                    }
+                            $multiply: [this.getTimeDecayExpression(), timeDecayWeight],
+                        },
+                    },
                 },
                 {
                     $addFields: {
@@ -143,52 +138,13 @@ class PostService extends db_utils_1.default {
                                 "$tagScore",
                                 "$textScore",
                                 "$engagementScore",
-                                "$timeDecayScore"
-                            ]
-                        }
-                    }
+                                "$timeDecayScore",
+                            ],
+                        },
+                    },
                 },
-                // Sort by final score
-                {
-                    $sort: {
-                        finalScore: -1
-                    }
-                },
-                // Limit results
+                { $sort: { finalScore: -1 } },
                 { $limit: limit },
-                // Populate user
-                {
-                    $lookup: {
-                        from: 'users',
-                        localField: 'user',
-                        foreignField: '_id',
-                        as: 'user'
-                    }
-                },
-                { $unwind: '$user' },
-                {
-                    $project: {
-                        _id: 1,
-                        title: 1,
-                        content: 1,
-                        tags: 1,
-                        category: 1,
-                        user: 1,
-                        viewCount: 1,
-                        likeCount: 1,
-                        publishedAt: 1,
-                        createdAt: 1,
-                        updatedAt: 1,
-                        scores: {
-                            category: "$categoryScore",
-                            tags: "$tagScore",
-                            text: "$textScore",
-                            engagement: "$engagementScore",
-                            timeDecay: "$timeDecayScore",
-                            final: "$finalScore"
-                        }
-                    }
-                }
             ];
             return this.aggregate(pipeline);
         });
@@ -198,15 +154,78 @@ class PostService extends db_utils_1.default {
      */
     incrementViewCount(postId) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.update(postId, { $inc: { viewCount: 1 } });
+            yield this.updateById(postId, { $inc: { viewCount: 1 } });
         });
     }
     /**
      * Increment like count for a post
      */
-    incrementLikeCount(postId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.update(postId, { $inc: { likeCount: 1 } });
+    updateLikeCount(postId_1) {
+        return __awaiter(this, arguments, void 0, function* (postId, likeUpdateType = "increment") {
+            if (likeUpdateType === "decrement") {
+                yield this.updateById(postId, { $inc: { likeCount: 1 } });
+            }
+            else {
+                yield this.updateById(postId, { dec: { likeCount: 1 } });
+            }
+        });
+    }
+    /**
+     * Search posts with flexible text matching including category and tags
+     * @param searchTerm - The term to search for
+     * @param filters - Additional filters
+     * @param options - Pagination and sorting options
+     */
+    searchPosts(searchTerm_1) {
+        return __awaiter(this, arguments, void 0, function* (searchTerm, filters = {}, options = {}, sortOptions = { createdAt: -1 }) {
+            const { page = 1, limit = 10, useTextSearch = false } = options;
+            let query = Object.assign({}, filters);
+            if (searchTerm === null || searchTerm === void 0 ? void 0 : searchTerm.trim()) {
+                const cleanedSearchTerm = searchTerm.trim();
+                if (useTextSearch && cleanedSearchTerm.length >= 3) {
+                    query.$text = { $search: cleanedSearchTerm };
+                    sortOptions = Object.assign({ score: { $meta: "textScore" } }, sortOptions);
+                }
+                else {
+                    const escapedSearchTerm = cleanedSearchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                    const regex = new RegExp(escapedSearchTerm, "i");
+                    // First, find matching categories and tags
+                    const [matchingCategories, matchingTags] = yield Promise.all([
+                        this.categoryService.find({ title: regex }, { select: ["_id"] }),
+                        this.tagService.find({ title: regex }, { select: ["_id"] }),
+                    ]);
+                    const categoryIds = matchingCategories.map((c) => c._id);
+                    const tagIds = matchingTags.map((t) => t._id);
+                    // Build $or conditions for search
+                    const searchConditions = [
+                        { title: regex },
+                        { content: regex },
+                        { slug: regex },
+                    ];
+                    if (categoryIds.length > 0) {
+                        searchConditions.push({ category: { $in: categoryIds } });
+                    }
+                    if (tagIds.length > 0) {
+                        searchConditions.push({ tags: { $in: tagIds } });
+                    }
+                    // Combine existing filters with search using $and
+                    if (query.$or || Object.keys(query).length > 0) {
+                        const existingFilters = Object.assign({}, query);
+                        query = {
+                            $and: [existingFilters, { $or: searchConditions }],
+                        };
+                    }
+                    else {
+                        query.$or = searchConditions;
+                    }
+                }
+            }
+            return this.paginate(query, {
+                page,
+                limit,
+                sort: sortOptions,
+                populate: ["user", "category", "tags"],
+            });
         });
     }
 }

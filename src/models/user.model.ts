@@ -1,6 +1,6 @@
 import { Schema, model, Model } from 'mongoose';
 import { IUser } from './interface';
-import { MODEL_NAME } from '../common/constant';
+import { MODEL_NAME, ROLE_MAP } from '../common/constant';
 
 /**
  * Mongoose schema for User model
@@ -31,7 +31,14 @@ export const UserSchema = new Schema<IUser>(
          * @type {string}
          * @required
          */
-        email: { type: String, required: true }
+        email: { type: String, required: true },
+
+        /**
+         * Role to manage authorization to resources
+         * @type {number}
+         * @required
+         */
+        role: { type: Number, enum: Object.values(ROLE_MAP) },
     },
     {
         /** Enable virtual properties when converting to plain object */

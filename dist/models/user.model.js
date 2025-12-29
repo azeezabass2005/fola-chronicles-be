@@ -29,7 +29,13 @@ exports.UserSchema = new mongoose_1.Schema({
      * @type {string}
      * @required
      */
-    email: { type: String, required: true }
+    email: { type: String, required: true },
+    /**
+     * Role to manage authorization to resources
+     * @type {number}
+     * @required
+     */
+    role: { type: Number, enum: Object.values(constant_1.ROLE_MAP) },
 }, {
     /** Enable virtual properties when converting to plain object */
     toObject: { virtuals: true },

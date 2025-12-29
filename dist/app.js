@@ -24,6 +24,7 @@ const logger_utils_1 = __importDefault(require("./utils/logger.utils"));
 // import errorHandler from './middlewares/error.middleware';
 const routes_1 = __importDefault(require("./routes"));
 const db_config_1 = __importDefault(require("./config/db.config"));
+const error_middleware_1 = __importDefault(require("./middlewares/error.middleware"));
 /**
  * Express application wrapper class
  * @class App
@@ -37,21 +38,25 @@ class App {
         this.app = (0, express_1.default)();
         this.dbService = db_config_1.default.getInstance();
         this.setupMiddlewares();
-        this.setupDatabase().then(() => console.log("Database setup completed."));
+        this.setupDatabase().then(() => { });
         this.setupRoutes();
         this.setupErrorHandling();
     }
     /**
-     * Configure middlewares for security, request parsing, rate limiting, compression, and logging.
-     * Ensures the application is secure and optimized for production.
+     * Configure application middlewares
      * @private
      */
     setupMiddlewares() {
         // Security middlewares
         this.app.use((0, helmet_1.default)());
         this.app.use((0, cors_1.default)({
-            origin: env_config_1.default.CORS_ORIGIN,
-            credentials: true
+            origin: [
+                'http://localhost:3000',
+                'localhost:3000',
+                'http://172.18.177.41:3000',
+            ],
+            credentials: true,
+            exposedHeaders: ['set-cookie']
         }));
         // Rate limiting
         const limiter = (0, express_rate_limit_1.default)({
@@ -89,7 +94,7 @@ class App {
      */
     setupDatabase() {
         return __awaiter(this, void 0, void 0, function* () {
-            // this.dbService.connect()
+            yield this.dbService.connect();
         });
     }
     /**
@@ -117,6 +122,7 @@ class App {
      */
     setupErrorHandling() {
         // this.app.use(errorHandler);
+        error_middleware_1.default.initialize(this.app);
         // Handle 404 errors
         this.app.use((req, res) => {
             logger_utils_1.default.warn('Route not found', {

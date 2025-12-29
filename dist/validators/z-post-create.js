@@ -15,8 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const zod_1 = __importDefault(require("zod"));
 const zod_error_1 = __importDefault(require("./zod.error"));
 const ZPostCreate = zod_1.default.object({
-    title: zod_1.default.string().min(3).max(63),
-    content: zod_1.default.string().min(63),
+    title: zod_1.default.string().min(3).max(100),
+    content: zod_1.default.string().min(1000),
     tags: zod_1.default.array(zod_1.default.string()).max(8),
     category: zod_1.default.string().min(3).max(63),
 });

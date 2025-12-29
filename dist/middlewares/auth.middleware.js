@@ -27,7 +27,7 @@ const token_utils_1 = __importDefault(require("../utils/token.utils"));
 const user_service_1 = __importDefault(require("../services/user.service"));
 class AuthMiddleware {
     /**
-     * Validates the presence of authorization header
+     * Validates the presence of authorization header or cookie
      * @param req Express request object
      * @param res Express response object
      * @param next Next middleware function
@@ -36,33 +36,75 @@ class AuthMiddleware {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { authorization } = req.headers;
-                if (!authorization) {
-                    return res.status(401).json({ error: "Unauthorized: Missing token" });
+                // Extract token from either Authorization header or accessToken cookie
+                let tokenString;
+                if (authorization) {
+                    // Token from Authorization header
+                    tokenString = authorization;
+                }
+                else if (req.headers.cookie) {
+                    // Token from cookie
+                    tokenString = this.extractTokenFromCookie(req.headers.cookie);
+                }
+                if (!tokenString) {
+                    res.status(401).json({
+                        success: false,
+                        message: "Unauthorized: Missing token"
+                    });
+                    return;
                 }
                 // Validate and parse token
-                const token = this.parseToken(authorization);
+                const token = this.parseToken(tokenString);
                 const { data, iat, exp } = yield token.verifyToken();
                 // Validate token contents
-                if (!(data === null || data === void 0 ? void 0 : data.email) || !(data === null || data === void 0 ? void 0 : data.userId) || !(data === null || data === void 0 ? void 0 : data.username)) {
-                    return res.status(401).json({ error: "Unauthorized: Invalid token" });
+                if (!(data === null || data === void 0 ? void 0 : data.email) || !(data === null || data === void 0 ? void 0 : data.userId)) {
+                    res.status(401).json({
+                        success: false,
+                        message: "Unauthorized: Invalid token data"
+                    });
+                    return;
                 }
                 // Attach user info to response locals
                 res.locals.userId = data.userId;
                 res.locals.email = data.email;
-                res.locals.username = data.username;
                 // Verify user exists
                 yield this.verifyUser(res);
-                return next();
+                next();
+                return;
             }
             catch (error) {
                 console.error("Authorization error:", error);
-                return res.status(401).json({ error: "Unauthorized" });
+                res.status(401).json({
+                    success: false,
+                    message: "Unauthorized"
+                });
+                return;
             }
         });
     }
+    logoutAll(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Implementation for logout all functionality
+        });
+    }
+    /**
+     * Extracts access token from cookie string
+     * @param cookieString Cookie header string
+     * @returns Access token or undefined
+     */
+    extractTokenFromCookie(cookieString) {
+        const cookies = cookieString.split(';').map(cookie => cookie.trim());
+        for (const cookie of cookies) {
+            const [name, value] = cookie.split('=');
+            if (name === 'accessToken') {
+                return `Bearer ${value}`;
+            }
+        }
+        return undefined;
+    }
     /**
      * Parses the authorization token
-     * @param authorization Authorization header string
+     * @param authorization Authorization header string or formatted token
      * @returns Parsed token
      */
     parseToken(authorization) {
@@ -83,7 +125,6 @@ class AuthMiddleware {
             const getUser = yield userService.findOne({
                 _id: res.locals.userId,
                 email: res.locals.email,
-                username: res.locals.username,
             });
             if (!(getUser === null || getUser === void 0 ? void 0 : getUser._id)) {
                 throw new Error("User not found");

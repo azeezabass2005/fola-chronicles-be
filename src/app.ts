@@ -10,6 +10,8 @@ import logger from './utils/logger.utils';
 // import errorHandler from './middlewares/error.middleware';
 import routes from './routes';
 import DatabaseService from "./config/db.config";
+import ResponseErrorHandler from "./middlewares/error.middleware";
+
 
 /**
  * Express application wrapper class
@@ -27,22 +29,27 @@ class App {
         this.app = express();
         this.dbService = DatabaseService.getInstance();
         this.setupMiddlewares();
-        this.setupDatabase().then(() => console.log("Database setup completed."));
+        this.setupDatabase().then(() => {});
         this.setupRoutes();
         this.setupErrorHandling();
+
     }
 
     /**
-     * Configure middlewares for security, request parsing, rate limiting, compression, and logging.
-     * Ensures the application is secure and optimized for production.
+     * Configure application middlewares
      * @private
      */
     private setupMiddlewares(): void {
         // Security middlewares
         this.app.use(helmet());
         this.app.use(cors({
-            origin: config.CORS_ORIGIN,
-            credentials: true
+            origin: [
+                'http://localhost:3000',
+                'localhost:3000',
+                'http://172.18.177.41:3000',
+            ],
+            credentials: true,
+            exposedHeaders: ['set-cookie']
         }));
 
         // Rate limiting
@@ -84,7 +91,7 @@ class App {
      * @private
      */
     private async setupDatabase(): Promise<void> {
-        // this.dbService.connect()
+        await this.dbService.connect()
     }
 
     /**
@@ -115,6 +122,8 @@ class App {
      */
     private setupErrorHandling(): void {
         // this.app.use(errorHandler);
+
+        ResponseErrorHandler.initialize(this.app)
 
         // Handle 404 errors
         this.app.use((req: Request, res: Response) => {

@@ -1,4 +1,0 @@
-2025-01-21 01:39:25 [warn]: No .env file found, using default values {"envPath":"/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/.env.development","defaultPath":"/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/.env"}
-2025-01-21 01:39:25 [info]: Environment configuration loaded {"environment":"development","apiVersion":"v1","logLevel":"info"}
-2025-01-21 01:39:25 [info]: Server started {"port":3500,"environment":"development","nodeVersion":"v20.16.0"}
-2025-01-21 03:20:58 [info]: MongoDB connection closed through app termination 

@@ -15,14 +15,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // In your protected routes file
 const express_1 = require("express");
 const auth_middleware_1 = __importDefault(require("../../middlewares/auth.middleware"));
+const post_controller_1 = __importDefault(require("../../controllers/base/protected/post.controller"));
+const user_controller_1 = __importDefault(require("../../controllers/base/protected/user.controller"));
 const path = "/protected";
 const protectedRouter = (0, express_1.Router)();
 protectedRouter.use(path, (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield auth_middleware_1.default.validateAuthorization(req, res, next);
+        // next()
     }
     catch (error) {
         next(error);
     }
 }));
+protectedRouter.use(`${path}/posts`, post_controller_1.default);
+protectedRouter.use(`${path}/users`, user_controller_1.default);
 exports.default = protectedRouter;

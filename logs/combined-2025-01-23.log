@@ -1,5 +1,0 @@
-2025-01-23 17:55:56 [info]: Environment configuration loaded {"environment":"development","apiVersion":"v1","logLevel":"info"}
-2025-01-23 17:55:57 [info]: Server started {"port":3500,"environment":"development","nodeVersion":"v20.16.0"}
-2025-01-23 23:31:47 [warn]: Route not found {"method":"GET","path":"/","ip":"::1"}
-2025-01-23 23:31:49 [warn]: Route not found {"method":"GET","path":"/favicon.ico","ip":"::1"}
-2025-01-23 23:32:01 [warn]: Route not found {"method":"GET","path":"/","ip":"::ffff:192.168.154.53"}

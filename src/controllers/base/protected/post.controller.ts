@@ -1,9 +1,10 @@
 import {Request, Response, NextFunction} from "express";
-import BaseController from "../base-controller";
+import BaseController from "../../base/base-controller";
 import PostService from "../../../services/post.service";
 import errorResponseMessage from "../../../common/messages/error-response-message";
-import {IPost} from "../../../models/interface";
 import {validatePostCreate} from "../../../validators";
+import TagService from "../../../services/tag.service";
+import CategoryService from "../../../services/category.service";
 
 /**
  * Controller handling post-related operations
@@ -12,6 +13,8 @@ import {validatePostCreate} from "../../../validators";
  */
 class PostController extends BaseController {
     private postService: PostService;
+    private tagService: TagService;
+    private categoryService: CategoryService;
 
     /**
      * Creates an instance of PostController
@@ -19,6 +22,8 @@ class PostController extends BaseController {
     constructor() {
         super();
         this.postService = new PostService();
+        this.categoryService = new CategoryService();
+        this.tagService = new TagService();
         this.setupRoutes();
     }
 
@@ -49,19 +54,28 @@ class PostController extends BaseController {
      */
     private async createPost(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
+            console.log("Got to the create post function");
             const user = res.locals.user;
-            const postData: Partial<IPost> = req.body;
+            // const postData: Partial<IPost> = req.body;
 
+            const { category, tags, ...postData } = req.body;
+
+            const tagDocs = await this.tagService.findOrCreateTags(tags);
+            const categoryDoc = await this.categoryService.findOrCreateCategory(category);
+            console.log(user, postData, "This is the user and postData");
             const post = await this.postService.save({
                 ...postData,
+                tags: tagDocs.map(tag => tag._id),
+                category: categoryDoc._id,
                 user: user?._id,
             });
+            console.log(post, "This is the post created")
 
             if (!post) {
                 throw new Error("Failed to create post");
             }
 
-            this.sendSuccess(res, {
+             this.sendSuccess(res, {
                 post_id: post._id,
                 post: post
             });
@@ -76,17 +90,31 @@ class PostController extends BaseController {
      */
     private async getPosts(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const page = parseInt(req.query.page as string) || 1;
-            const limit = parseInt(req.query.limit as string) || 10;
 
-            const posts = await this.postService.paginate(req.query, {
-                page,
-                limit,
-                sort: {created_at: -1},
-                populate: ['user']
-            });
+            const { page, limit, searchTerm, ...otherQueries } = req.query;
 
-            this.sendSuccess(res, {posts});
+            let posts;
+
+            if (searchTerm) {
+                posts = await this.postService.searchPosts(
+                    searchTerm.toString(),
+                    otherQueries,
+                    {
+                        page: parseInt(page as string) || 1,
+                        limit: parseInt(limit as string) || 10,
+                        useTextSearch: false
+                    }
+                );
+            } else {
+                posts = await this.postService.paginate(otherQueries, {
+                    page: parseInt(page as string) || 1,
+                    limit: parseInt(limit as string) || 10,
+                    sort: { created_at: -1 }
+                });
+            }
+
+            return this.sendSuccess(res, posts)
+
         } catch (error) {
             next(error);
         }
@@ -106,7 +134,7 @@ class PostController extends BaseController {
                 throw errorResponseMessage.resourceNotFound('Post');
             }
 
-            const relatedPosts = await this.postService.getRelatedPosts(req.params.id, {
+            const relatedPosts = await this.postService.getRelatedPosts(post, {
                 limit: 5,
                 includeSameUser: false
             });
@@ -122,7 +150,7 @@ class PostController extends BaseController {
      */
     private async updatePost(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const post = await this.postService.update(req.params.id, req.body);
+            const post = await this.postService.updateById(req.params.id, req.body);
 
             if (!post) {
                 throw errorResponseMessage.resourceNotFound('Post');
@@ -153,5 +181,4 @@ class PostController extends BaseController {
     }
 }
 
-// Export an instance of the controller's router
 export default new PostController().router;

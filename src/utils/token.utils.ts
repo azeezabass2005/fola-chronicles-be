@@ -13,7 +13,7 @@ dotenv.config()
 /**
  * Utility functions for token-related operations
  */
-class TokenUtils {
+export class TokenUtils {
     /**
      * Adds specified number of days to the current date
      * @param days Number of days to add
@@ -35,13 +35,25 @@ class TokenUtils {
             .map(b => b.toString(16).padStart(2, '0'))
             .join('');
     }
+
+    /**
+     * Generates a random refresh token id for refresh token persistent storage
+     * @returns Randomly generated token string
+     */
+    static generateRefreshTokenId(): string {
+        return this.generateRandomToken(32);
+    }
+
+    static getRefreshTokenExpiry(): Date {
+        return this.addDaysToDate(7);
+    }
 }
 
 /**
  * Represents a token management class with advanced features
  */
 class Token {
-    private token: string;
+    private readonly token: string;
 
     /**
      * Creates an instance of Token
@@ -64,11 +76,12 @@ class Token {
             expiresIn: '168h'
         }
     ): string {
-        const { type = TokenType.ACCESS, expiresIn = '168h' } = options;
+        const { type = TokenType.ACCESS, expiresIn = '1h' } = options;
 
         const payload: ITokenPayload = {
             userId: user?._id as string,
             email: user?.email,
+            role: user?.role,
             username: user?.username,
         };
 
@@ -94,6 +107,7 @@ class Token {
         userId: string;
         email: string;
         username: string;
+        role: number;
     }): string {
         const payload: IVerifyTokenPayload = {
             ...user,
@@ -112,6 +126,8 @@ class Token {
             }
         );
     }
+
+
 
     /**
      * Verifies the JWT token
@@ -148,7 +164,7 @@ class Token {
      * @throws {Error} If TOKEN_SECRET is not set
      */
     private getSecretKey(): string {
-        const secret = process.env.TOKEN_SECRET;
+        const secret = process.env["JWT_SECRET"];
         if (!secret) {
             throw new Error('TOKEN_SECRET is not defined in environment variables');
         }

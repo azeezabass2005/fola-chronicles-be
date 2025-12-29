@@ -1,13 +1,19 @@
 import {Router} from "express";
-// import proposalRouter from "../../controllers/public/proposal.controller"
+import authController from "../../controllers/base/public/auth.controller";
+import postController from "../../controllers/base/public/post.controller"
+import tagController from "../../controllers/base/public/tag.controller";
+import categoryController from "../../controllers/base/public/category.controller";
 
 const path = "/public";
 
 const publicRouter = Router()
 
-// publicRouter.use(path)
+publicRouter.use(`${path}/auth`, authController)
 
-// You can add all other paths here
-// e.g publicRouter.use(`${path}/proposal`, proposalRouter)
+publicRouter.use(`${path}/posts`, postController)
+
+publicRouter.use(`${path}/tags`, tagController)
+
+publicRouter.use(`${path}/categories`, categoryController)
 
 export default publicRouter

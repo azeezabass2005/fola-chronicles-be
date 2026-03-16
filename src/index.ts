@@ -17,7 +17,11 @@ process.on('SIGTERM', () => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    logger.error('Unhandled Rejection', {
+        promise: promise.toString(),
+        reason: reason instanceof Error ? reason.message : reason,
+        stack: reason instanceof Error ? reason.stack : undefined
+    });
 });
 
 

@@ -31,7 +31,6 @@ class PostService extends db_utils_1.default {
      * @param {string[]} [populatedFields=[]] - Optional fields to populate during queries
      */
     constructor(populatedFields = []) {
-        // Initialize the service with User model and optional population fields
         super(post_model_1.default, populatedFields);
         this.tagService = new tag_service_1.default();
         this.categoryService = new category_service_1.default();
@@ -67,12 +66,7 @@ class PostService extends db_utils_1.default {
      */
     getRelatedPosts(originalPost_1) {
         return __awaiter(this, arguments, void 0, function* (originalPost, options = {}) {
-            const { limit = 5, includeSameUser = false, categoryWeight = 3, // Category matching is important
-            tagWeight = 2, // Tag matching is also significant
-            textSimilarityWeight = 1.5, // Text similarity adds relevance
-            engagementWeight = 1, // Engagement provides social proof
-            timeDecayWeight = 0.5, // Time decay slightly influences ranking
-             } = options;
+            const { limit = 5, includeSameUser = false, categoryWeight = 3, tagWeight = 2, textSimilarityWeight = 1.5, engagementWeight = 1, timeDecayWeight = 0.5, } = options;
             // const originalPost = await this.findById(postId, {
             //     populate: ['user']
             // });
@@ -189,14 +183,12 @@ class PostService extends db_utils_1.default {
                 else {
                     const escapedSearchTerm = cleanedSearchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
                     const regex = new RegExp(escapedSearchTerm, "i");
-                    // First, find matching categories and tags
                     const [matchingCategories, matchingTags] = yield Promise.all([
                         this.categoryService.find({ title: regex }, { select: ["_id"] }),
                         this.tagService.find({ title: regex }, { select: ["_id"] }),
                     ]);
                     const categoryIds = matchingCategories.map((c) => c._id);
                     const tagIds = matchingTags.map((t) => t._id);
-                    // Build $or conditions for search
                     const searchConditions = [
                         { title: regex },
                         { content: regex },
@@ -208,7 +200,6 @@ class PostService extends db_utils_1.default {
                     if (tagIds.length > 0) {
                         searchConditions.push({ tags: { $in: tagIds } });
                     }
-                    // Combine existing filters with search using $and
                     if (query.$or || Object.keys(query).length > 0) {
                         const existingFilters = Object.assign({}, query);
                         query = {

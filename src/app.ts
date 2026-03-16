@@ -42,12 +42,11 @@ class App {
     private setupMiddlewares(): void {
         // Security middlewares
         this.app.use(helmet());
+        
+        // Configure CORS from environment variables
+        const corsOrigins = this.getCorsOrigins();
         this.app.use(cors({
-            origin: [
-                'http://localhost:3000',
-                'localhost:3000',
-                'http://172.18.177.41:3000',
-            ],
+            origin: corsOrigins,
             credentials: true,
             exposedHeaders: ['set-cookie']
         }));
@@ -161,6 +160,30 @@ class App {
                 } : reason
             });
         });
+    }
+
+    /**
+     * Get CORS origins from environment variables
+     * @private
+     * @returns {string[]} Array of allowed origins
+     */
+    private getCorsOrigins(): string[] | string {
+        const corsOrigin = config.CORS_ORIGIN;
+        
+        if (!corsOrigin || corsOrigin === '*') {
+            // In production, '*' should not be used for security
+            if (config.NODE_ENV === 'production') {
+                logger.warn('CORS_ORIGIN is set to "*" in production - this is insecure');
+            }
+            return '*';
+        }
+
+        // Support comma-separated origins
+        if (corsOrigin.includes(',')) {
+            return corsOrigin.split(',').map(origin => origin.trim()).filter(origin => origin.length > 0);
+        }
+
+        return corsOrigin;
     }
 
     /**

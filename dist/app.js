@@ -53,7 +53,7 @@ class App {
             origin: [
                 'http://localhost:3000',
                 'localhost:3000',
-                'http://172.18.177.41:3000',
+                'http://10.59.254.41:3000',
             ],
             credentials: true,
             exposedHeaders: ['set-cookie']

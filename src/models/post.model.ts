@@ -18,14 +18,43 @@ export const PostSchema = new Schema<IPost>(
          * @type {string}
          * @required
          */
-        title: { type: String, required: true },
+        title: { 
+            type: String, 
+            required: [true, 'Post title is required'],
+            trim: true,
+            minlength: [1, 'Post title must be at least 1 character long'],
+            maxlength: [200, 'Post title must not exceed 200 characters']
+        },
+
+        /**
+         * Description of the post
+         * @type {string}
+         */
+        description: { 
+            type: String, 
+            trim: true,
+            maxlength: [500, 'Post description must not exceed 500 characters']
+        },
 
         /**
          * Content of the post
          * @type {string}
          * @required
          */
-        content: { type: String, required: true },
+        content: { 
+            type: String, 
+            required: [true, 'Post content is required'],
+            minlength: [1, 'Post content must be at least 1 character long']
+        },
+
+        /**
+         * Featured image URL for the post
+         * @type {string}
+         */
+        featuredImage: { 
+            type: String, 
+            trim: true
+        },
 
         /**
          * Tags for the post
@@ -39,7 +68,12 @@ export const PostSchema = new Schema<IPost>(
          * @type {Schema.Types.ObjectId}
          * @required
          */
-        category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
+        category: { 
+            type: Schema.Types.ObjectId, 
+            ref: "Category", 
+            required: [true, 'Post category is required'],
+            index: true
+        },
 
         /**
          * Slug of the post
@@ -58,7 +92,12 @@ export const PostSchema = new Schema<IPost>(
          * @required
          * @ref UserModel
          */
-        user: { type: Schema.Types.ObjectId, ref: MODEL_NAME.USER, required: true },
+        user: { 
+            type: Schema.Types.ObjectId, 
+            ref: MODEL_NAME.USER, 
+            required: [true, 'Post user is required'],
+            index: true
+        },
 
         /**
          * Number of views for the post
@@ -100,7 +139,15 @@ export const PostSchema = new Schema<IPost>(
          * @type {PublicationStatus}
          * @default draft
          */
-        publicationStatus: { type: String, enum: Object.values(PUBLICATION_STATUS), default: PUBLICATION_STATUS.DRAFT }
+        publicationStatus: { 
+            type: String, 
+            enum: {
+                values: Object.values(PUBLICATION_STATUS),
+                message: 'Invalid publication status'
+            },
+            default: PUBLICATION_STATUS.DRAFT,
+            index: true
+        }
 
     },
     {
@@ -120,6 +167,15 @@ export const PostSchema = new Schema<IPost>(
  * @description Adds a text index to the title and content fields
  */
 PostSchema.index({ title: 'text', content: 'text', category: 'text', tags: 'text', slug: 'text' });
+
+/**
+ * Add compound indexes for frequently queried fields
+ * @description Optimizes queries that filter by publicationStatus, category, and user
+ */
+PostSchema.index({ publicationStatus: 1, createdAt: -1 });
+PostSchema.index({ category: 1, publicationStatus: 1, createdAt: -1 });
+PostSchema.index({ user: 1, publicationStatus: 1 });
+PostSchema.index({ tags: 1, publicationStatus: 1 });
 
 PostSchema.plugin(paginate);
 

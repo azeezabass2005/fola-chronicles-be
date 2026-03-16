@@ -5,6 +5,9 @@ import errorResponseMessage from "../../../common/messages/error-response-messag
 import {validatePostCreate} from "../../../validators";
 import TagService from "../../../services/tag.service";
 import CategoryService from "../../../services/category.service";
+import SubscriptionNotificationUtils from "../../../utils/subscription-notification.utils";
+import { PUBLICATION_STATUS } from "../../../common/constant";
+import { sanitizeContent, sanitizeInput } from "../../../utils/sanitize.utils";
 
 /**
  * Controller handling post-related operations
@@ -15,6 +18,7 @@ class PostController extends BaseController {
     private postService: PostService;
     private tagService: TagService;
     private categoryService: CategoryService;
+    private subscriptionNotifier: SubscriptionNotificationUtils;
 
     /**
      * Creates an instance of PostController
@@ -24,6 +28,7 @@ class PostController extends BaseController {
         this.postService = new PostService();
         this.categoryService = new CategoryService();
         this.tagService = new TagService();
+        this.subscriptionNotifier = new SubscriptionNotificationUtils();
         this.setupRoutes();
     }
 
@@ -32,19 +37,10 @@ class PostController extends BaseController {
      * @protected
      */
     protected setupRoutes(): void {
-        // Create post route
         this.router.post("/", validatePostCreate, this.createPost.bind(this));
-
-        // Get posts route
         this.router.get("/", this.getPosts.bind(this));
-
-        // Get single post route
         this.router.get("/:id", this.getPostById.bind(this));
-
-        // Update post route
         this.router.patch("/:id", this.updatePost.bind(this));
-
-        // Delete post route
         this.router.delete("/:id", this.deletePost.bind(this));
     }
 
@@ -54,25 +50,44 @@ class PostController extends BaseController {
      */
     private async createPost(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            console.log("Got to the create post function");
             const user = res.locals.user;
-            // const postData: Partial<IPost> = req.body;
-
             const { category, tags, ...postData } = req.body;
+
+            // Sanitize user input to prevent XSS attacks
+            const sanitizedPostData = {
+                ...postData,
+                title: sanitizeInput(postData.title || ''),
+                description: sanitizeInput(postData.description || ''),
+                content: sanitizeContent(postData.content || ''),
+            };
 
             const tagDocs = await this.tagService.findOrCreateTags(tags);
             const categoryDoc = await this.categoryService.findOrCreateCategory(category);
-            console.log(user, postData, "This is the user and postData");
             const post = await this.postService.save({
-                ...postData,
+                ...sanitizedPostData,
                 tags: tagDocs.map(tag => tag._id),
                 category: categoryDoc._id,
                 user: user?._id,
             });
-            console.log(post, "This is the post created")
 
             if (!post) {
                 throw new Error("Failed to create post");
+            }
+
+            // Notify subscribers if post is published
+            if (post.publicationStatus === PUBLICATION_STATUS.PUBLISHED && post.slug) {
+                // Extract excerpt from content (first 200 characters, strip markdown)
+                const excerpt = this.extractExcerpt(post.content || '', 200);
+                
+                // Send notifications asynchronously (don't wait for it)
+                this.subscriptionNotifier.notifySubscribersOfNewPost({
+                    title: post.title,
+                    excerpt,
+                    slug: post.slug,
+                }).catch((error) => {
+                    // Log error but don't fail the post creation
+                    this.logger.error('Failed to notify subscribers:', { error, postId: post._id });
+                });
             }
 
              this.sendSuccess(res, {
@@ -91,14 +106,34 @@ class PostController extends BaseController {
     private async getPosts(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
 
-            const { page, limit, searchTerm, ...otherQueries } = req.query;
+            const { page, limit, searchTerm, startDate, endDate, status, ...otherQueries } = req.query;
+
+            // Add date range filtering
+            const filters: Record<string, unknown> = { ...otherQueries };
+            
+            // Map status to publicationStatus
+            if (status) {
+                filters.publicationStatus = status;
+            }
+            
+            if (startDate || endDate) {
+                filters.createdAt = {};
+                if (startDate) {
+                    filters.createdAt.$gte = new Date(startDate as string);
+                }
+                if (endDate) {
+                    const end = new Date(endDate as string);
+                    end.setHours(23, 59, 59, 999); // Include the entire end date
+                    filters.createdAt.$lte = end;
+                }
+            }
 
             let posts;
 
             if (searchTerm) {
                 posts = await this.postService.searchPosts(
                     searchTerm.toString(),
-                    otherQueries,
+                    filters,
                     {
                         page: parseInt(page as string) || 1,
                         limit: parseInt(limit as string) || 10,
@@ -106,10 +141,11 @@ class PostController extends BaseController {
                     }
                 );
             } else {
-                posts = await this.postService.paginate(otherQueries, {
+                posts = await this.postService.paginate(filters, {
                     page: parseInt(page as string) || 1,
                     limit: parseInt(limit as string) || 10,
-                    sort: { created_at: -1 }
+                    sort: { createdAt: -1 },
+                    populate: ["user", "tags", "category"]
                 });
             }
 
@@ -150,16 +186,102 @@ class PostController extends BaseController {
      */
     private async updatePost(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const post = await this.postService.updateById(req.params.id, req.body);
+            const existingPost = await this.postService.findById(req.params.id);
+            
+            if (!existingPost) {
+                throw errorResponseMessage.resourceNotFound('Post');
+            }
+
+            const { category, tags, ...postData } = req.body;
+
+            // Sanitize user input to prevent XSS attacks
+            const sanitizedUpdateData: Record<string, unknown> = {};
+            if (postData.title !== undefined) {
+                sanitizedUpdateData.title = sanitizeInput(postData.title);
+            }
+            if (postData.description !== undefined) {
+                sanitizedUpdateData.description = sanitizeInput(postData.description);
+            }
+            if (postData.content !== undefined) {
+                sanitizedUpdateData.content = sanitizeContent(postData.content);
+            }
+            if (postData.featuredImage !== undefined) {
+                sanitizedUpdateData.featuredImage = sanitizeInput(postData.featuredImage);
+            }
+
+            // Handle tags and category updates
+            let updateData: Record<string, unknown> = { ...postData, ...sanitizedUpdateData };
+            
+            if (tags !== undefined && Array.isArray(tags)) {
+                const tagDocs = await this.tagService.findOrCreateTags(tags);
+                updateData.tags = tagDocs.map(tag => tag._id);
+            }
+            
+            if (category !== undefined && category !== null) {
+                const categoryDoc = await this.categoryService.findOrCreateCategory(category);
+                updateData.category = categoryDoc._id;
+            }
+
+            const post = await this.postService.updateById(req.params.id, updateData);
 
             if (!post) {
                 throw errorResponseMessage.resourceNotFound('Post');
+            }
+
+            // Notify subscribers if post status changed from draft to published
+            const wasDraft = existingPost.publicationStatus === PUBLICATION_STATUS.DRAFT;
+            const isNowPublished = post.publicationStatus === PUBLICATION_STATUS.PUBLISHED;
+            
+            if (wasDraft && isNowPublished && post.slug) {
+                // Extract excerpt from content
+                const excerpt = this.extractExcerpt(post.content || '', 200);
+                
+                // Send notifications asynchronously (don't wait for it)
+                this.subscriptionNotifier.notifySubscribersOfNewPost({
+                    title: post.title,
+                    excerpt,
+                    slug: post.slug,
+                }).catch((error) => {
+                    // Log error but don't fail the post update
+                    this.logger.error('Failed to notify subscribers:', { error, postId: post._id });
+                });
             }
 
             this.sendSuccess(res, {post});
         } catch (error) {
             next(error);
         }
+    }
+
+    /**
+     * Extracts an excerpt from markdown content
+     * @private
+     * @param {string} content Markdown content
+     * @param {number} maxLength Maximum length of excerpt
+     * @returns {string} Plain text excerpt
+     */
+    private extractExcerpt(content: string, maxLength: number = 200): string {
+        if (!content) return '';
+
+        // Remove markdown syntax
+        const plainText = content
+            .replace(/[#_*~`>!-]/g, '')              // remove common markdown symbols
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // keep link text only
+            .replace(/!\[.*\]\([^)]+\)/g, '')        // remove images
+            .replace(/```[\s\S]*?```/g, '')          // remove code blocks
+            .replace(/`[^`]+`/g, '')                 // remove inline code
+            .replace(/>\s+/g, '')                    // remove blockquote markers
+            .replace(/\s+/g, ' ')                    // collapse whitespace
+            .trim();
+
+        if (plainText.length <= maxLength) {
+            return plainText;
+        }
+
+        // Truncate at word boundary
+        const truncated = plainText.substring(0, maxLength);
+        const lastSpace = truncated.lastIndexOf(' ');
+        return lastSpace > 0 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
     }
 
     /**

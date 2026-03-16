@@ -4,6 +4,8 @@ import {
     ClientSession,
     FilterQuery, Aggregate, PipelineStage,
 } from "mongoose";
+import { UpdateData } from "../types/common.types";
+import logger from "./logger.utils";
 
 /**
  * Represents the result of a pagination operation
@@ -58,7 +60,10 @@ class DBService<T> {
         try {
             return await operation();
         } catch (error) {
-            console.error(errorMessage, error);
+            logger.error(errorMessage, {
+                error: error instanceof Error ? error.message : error,
+                stack: error instanceof Error ? error.stack : undefined
+            });
             throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : error}`);
         }
     }
@@ -86,51 +91,51 @@ class DBService<T> {
 
     /**
      * Creates a document using Mongoose create method
-     * @param {any} data Document to create
+     * @param {Partial<T>} data Document to create
      * @param {ClientSession} [session=null] Optional database session
-     * @returns {Promise<any>} Created document
+     * @returns {Promise<HydratedDocument<T>>} Created document
      */
-    public create(data: any, session: ClientSession | null = null): Promise<any> {
+    public create(data: Partial<T>, session: ClientSession | null = null): Promise<HydratedDocument<T>> {
         return this.executeWithErrorHandling(() =>
                 this.Model.create(data)
-            , 'Create operation failed');
+            , 'Create operation failed') as Promise<HydratedDocument<T>>;
     }
 
     /**
      * Counts documents matching a query
-     * @param {any} [query={}] Query to filter documents
+     * @param {FilterQuery<T>} [query={}] Query to filter documents
      * @returns {Promise<number>} Number of matching documents
      */
-    public count(query: any = {}): Promise<number> {
+    public count(query: FilterQuery<T> = {}): Promise<number> {
         return this.executeWithErrorHandling(() =>
                 this.Model.countDocuments(query).maxTimeMS(30000)
             , 'Count operation failed');
     }
 
     /**
-     * Updates a document by ID
-     * @param {string} id Document ID to update
-     * @param {any} data Update data
+     * Updates a document matching the query
+     * @param {FilterQuery<T>} query Query to find document
+     * @param {UpdateData<T>} data Update data
      * @param {ClientSession} [session=null] Optional database session
-     * @returns {Promise<any>} Updated document
+     * @returns {Promise<HydratedDocument<T> | null>} Updated document or null
      */
-    public update(query: Partial<T>, data: any, session: ClientSession | null = null): Promise<any> {
+    public update(query: FilterQuery<T>, data: UpdateData<T>, session: ClientSession | null = null): Promise<HydratedDocument<T> | null> {
         return this.executeWithErrorHandling(() =>
-                this.Model.findByIdAndUpdate(query, data, { new: true }).session(session)
-            , 'Update by ID failed');
+                this.Model.findOneAndUpdate(query, data, { new: true }).session(session)
+            , 'Update operation failed') as Promise<HydratedDocument<T> | null>;
     }
 
     /**
      * Updates a document by ID
      * @param {string} id Document ID to update
-     * @param {any} data Update data
+     * @param {UpdateData<T>} data Update data
      * @param {ClientSession} [session=null] Optional database session
-     * @returns {Promise<any>} Updated document
+     * @returns {Promise<HydratedDocument<T> | null>} Updated document or null
      */
-    public updateById(id: string, data: any, session: ClientSession | null = null): Promise<any> {
+    public updateById(id: string, data: UpdateData<T>, session: ClientSession | null = null): Promise<HydratedDocument<T> | null> {
         return this.executeWithErrorHandling(() =>
                 this.Model.findByIdAndUpdate(id, data, { new: true }).session(session)
-            , 'Update by ID failed');
+            , 'Update by ID failed') as Promise<HydratedDocument<T> | null>;
     }
 
     /**
@@ -292,14 +297,14 @@ class DBService<T> {
 
     /**
      * Performs bulk write operations with optional transaction support
-     * @param {any[]} operations Array of bulk write operations
+     * @param {PipelineStage[]} operations Array of bulk write operations
      * @param {ClientSession} [session] Optional database session
-     * @returns {Promise<any>} Result of bulk write operations
+     * @returns {Promise<unknown>} Result of bulk write operations
      */
     public async bulkWrite(
-        operations: any[],
+        operations: PipelineStage[],
         session?: ClientSession
-    ): Promise<any> {
+    ): Promise<unknown> {
         return this.executeWithErrorHandling(async () => {
             return this.Model.bulkWrite(operations, { session });
         }, 'Bulk write operation failed');
@@ -310,16 +315,16 @@ class DBService<T> {
      * @param {string} id The document ID to delete
      * @param {Object} [options={}] Additional delete options
      * @param {ClientSession} [options.session] Database session
-     * @returns {Promise<any>} Result of the delete operation
+     * @returns {Promise<HydratedDocument<T> | null>} Deleted document or null
      */
     public async deleteById(
         id: string,
         options: { session?: ClientSession } = {}
-    ): Promise<any> {
+    ): Promise<HydratedDocument<T> | null> {
         return this.executeWithErrorHandling(async () => {
             const { session = null } = options;
             return this.Model.findByIdAndDelete(id).session(session);
-        }, 'Delete by ID operation failed');
+        }, 'Delete by ID operation failed') as Promise<HydratedDocument<T> | null>;
     }
 
     /**
@@ -327,16 +332,16 @@ class DBService<T> {
      * @param {FilterQuery<T>} query The query to find the document
      * @param {Object} [options={}] Additional delete options
      * @param {ClientSession} [options.session] Database session
-     * @returns {Promise<any>} Result of the delete operation
+     * @returns {Promise<HydratedDocument<T> | null>} Deleted document or null
      */
     public async deleteOne(
         query: FilterQuery<T>,
         options: { session?: ClientSession } = {}
-    ): Promise<any> {
+    ): Promise<HydratedDocument<T> | null> {
         return this.executeWithErrorHandling(async () => {
             const { session = null } = options;
             return this.Model.findOneAndDelete(query).session(session);
-        }, 'Delete one operation failed');
+        }, 'Delete one operation failed') as Promise<HydratedDocument<T> | null>;
     }
 
     /**
@@ -344,16 +349,16 @@ class DBService<T> {
      * @param {FilterQuery<T>} query The query to find documents
      * @param {Object} [options={}] Additional delete options
      * @param {ClientSession} [options.session] Database session
-     * @returns {Promise<any>} Result of the delete operation
+     * @returns {Promise<{ deletedCount: number }>} Result with count of deleted documents
      */
     public async deleteMany(
         query: FilterQuery<T>,
         options: { session?: ClientSession } = {}
-    ): Promise<any> {
+    ): Promise<{ deletedCount: number }> {
         return this.executeWithErrorHandling(async () => {
             const { session = null } = options;
             return this.Model.deleteMany(query).session(session);
-        }, 'Delete many operation failed');
+        }, 'Delete many operation failed') as Promise<{ deletedCount: number }>;
     }
 
     /**
@@ -361,18 +366,18 @@ class DBService<T> {
      * @param {PipelineStage[]} pipeline Array of aggregation pipeline stages
      * @param {Object} [options={}] Additional aggregation options
      * @param {ClientSession} [options.session] Database session for transactions
-     * @returns {Promise<any[]>} Result of the aggregation pipeline
+     * @returns {Promise<unknown[]>} Result of the aggregation pipeline
      */
     public async aggregate(
         pipeline: PipelineStage[],
         options: {
             session?: ClientSession;
         } = {}
-    ): Promise<any[]> {
+    ): Promise<unknown[]> {
         return this.executeWithErrorHandling(async () => {
             const { session = null } = options;
 
-            let aggregation: Aggregate<any[]> = this.Model.aggregate(pipeline);
+            let aggregation: Aggregate<unknown[]> = this.Model.aggregate(pipeline);
 
             // Add session if provided
             if (session) {
@@ -380,7 +385,7 @@ class DBService<T> {
             }
 
             return aggregation.exec();
-        }, 'Aggregation operation failed');
+        }, 'Aggregation operation failed') as Promise<unknown[]>;
     }
 }
 

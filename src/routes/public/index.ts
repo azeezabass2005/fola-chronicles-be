@@ -3,6 +3,7 @@ import authController from "../../controllers/base/public/auth.controller";
 import postController from "../../controllers/base/public/post.controller"
 import tagController from "../../controllers/base/public/tag.controller";
 import categoryController from "../../controllers/base/public/category.controller";
+import subscriptionController from "../../controllers/base/public/subscription.controller";
 
 const path = "/public";
 
@@ -15,5 +16,7 @@ publicRouter.use(`${path}/posts`, postController)
 publicRouter.use(`${path}/tags`, tagController)
 
 publicRouter.use(`${path}/categories`, categoryController)
+
+publicRouter.use(`${path}/subscription`, subscriptionController)
 
 export default publicRouter

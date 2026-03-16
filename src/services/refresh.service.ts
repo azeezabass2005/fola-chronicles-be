@@ -17,8 +17,6 @@ class RefreshTokenService extends DBService<IRefreshToken> {
         session?: ClientSession
     ): Promise<IRefreshToken> {
 
-        console.log("RefreshTokenService saveRefreshToken", tokenId, userAgent, ipAddress, session);
-
         return this.save({
             userId: (userId as unknown) as Schema.Types.ObjectId,
             token: tokenId,

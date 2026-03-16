@@ -181,5 +181,4 @@ class PostController extends base_controller_1.default {
         });
     }
 }
-// Export an instance of the controller's router
 exports.default = new PostController().router;

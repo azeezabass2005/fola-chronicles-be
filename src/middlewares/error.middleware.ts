@@ -81,8 +81,14 @@ class ResponseErrorHandler {
             .json({ ...errorResponse, correlationId });
     }
 
-    private isErrorResponse(err: any): err is ErrorResponse {
-        return 'response_code' in err && 'severity' in err && 'timestamp' in err;
+    private isErrorResponse(err: unknown): err is ErrorResponse {
+        return (
+            typeof err === 'object' &&
+            err !== null &&
+            'response_code' in err &&
+            'severity' in err &&
+            'timestamp' in err
+        );
     }
 
     private createDetailedErrorResponse(err: Error): ErrorResponse {
@@ -117,22 +123,24 @@ class ResponseErrorHandler {
         }
     }
 
-    private sanitizeData(data: any): any {
+    private sanitizeData(data: unknown): Record<string, unknown> {
         const sensitiveFields = ['password', 'token', 'secret', 'creditCard'];
-        if (!data) return data;
+        if (!data || typeof data !== 'object') return {};
 
-        return Object.entries(data).reduce((acc, [key, value]) => {
+        return Object.entries(data as Record<string, unknown>).reduce((acc, [key, value]) => {
             acc[key] = sensitiveFields.includes(key.toLowerCase()) ? '[REDACTED]' : value;
             return acc;
-        }, {} as any);
+        }, {} as Record<string, unknown>);
     }
 
-    private sanitizeHeaders(headers: any): any {
+    private sanitizeHeaders(headers: unknown): Record<string, unknown> {
         const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
-        return Object.entries(headers).reduce((acc, [key, value]) => {
+        if (!headers || typeof headers !== 'object') return {};
+
+        return Object.entries(headers as Record<string, unknown>).reduce((acc, [key, value]) => {
             acc[key] = sensitiveHeaders.includes(key.toLowerCase()) ? '[REDACTED]' : value;
             return acc;
-        }, {} as any);
+        }, {} as Record<string, unknown>);
     }
 
     private generateCorrelationId(): string {

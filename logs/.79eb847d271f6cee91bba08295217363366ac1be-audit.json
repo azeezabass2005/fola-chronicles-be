@@ -6,11 +6,6 @@
     "auditLog": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/.79eb847d271f6cee91bba08295217363366ac1be-audit.json",
     "files": [
         {
-            "date": 1766025593132,
-            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/error-2025-12-18.log",
-            "hash": "3a06f8239b2c466ba8e1a4b5741bb8d37840afafaae599f910f108e2955bafab"
-        },
-        {
             "date": 1766535338965,
             "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/error-2025-12-24.log",
             "hash": "ac62d893767042a187835d135d46ea26c50984533f41f1e3d6e873f5e060ddf4"
@@ -39,6 +34,11 @@
             "date": 1766962809439,
             "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/error-2025-12-29.log",
             "hash": "4fffef96d40587efa423c37d3180504c8ddc1fbc2834ae357b977175b9cb888f"
+        },
+        {
+            "date": 1767731922473,
+            "name": "/home/rustyfola/Desktop/frontend-hassle/production/kitchen/fola-safe-space/fola-safe-space-be/logs/error-2026-01-06.log",
+            "hash": "5d3e661db90ad0779603a8886b4cf0047adec8361b00d7cd7f5d0a0e507451dc"
         }
     ],
     "hashType": "sha256"

@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import {
     ITokenPayload,
     IVerifyTokenPayload,
+    IRefreshTokenPayload,
     TokenType,
     ITokenOptions
 } from './interface';
@@ -78,12 +79,25 @@ class Token {
     ): string {
         const { type = TokenType.ACCESS, expiresIn = '1h' } = options;
 
-        const payload: ITokenPayload = {
-            userId: user?._id as string,
-            email: user?.email,
-            role: user?.role,
-            username: user?.username,
-        };
+        let payload: ITokenPayload | IRefreshTokenPayload;
+
+        if (type === TokenType.REFRESH) {
+            // For refresh tokens, include tokenId in the payload
+            payload = {
+                userId: user?._id as string,
+                email: user?.email,
+                role: user?.role,
+                username: user?.username,
+                tokenId: TokenUtils.generateRefreshTokenId()
+            } as IRefreshTokenPayload;
+        } else {
+            payload = {
+                userId: user?._id as string,
+                email: user?.email,
+                role: user?.role,
+                username: user?.username,
+            };
+        }
 
         return Jwt.sign(
             {

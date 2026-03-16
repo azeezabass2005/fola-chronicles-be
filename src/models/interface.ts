@@ -29,7 +29,9 @@ export interface IRefreshToken extends Document {
 
 export interface IPost extends Document {
     title: string;
+    description?: string;
     content: string;
+    featuredImage?: string;
     tags: mongoose.Schema.Types.ObjectId[] | string[];
     category: mongoose.Schema.Types.ObjectId | string;
     slug: string;
@@ -47,4 +49,14 @@ export interface IPost extends Document {
 // Note: This is the same interface for tags or categories
 export interface ITag extends Document {
     title: string;
+}
+
+export interface ISubscription extends Document {
+    email: string;
+    isActive: boolean;
+    isConfirmed: boolean;
+    confirmationToken?: string;
+    confirmedAt?: Date;
+    unsubscribedAt?: Date;
+    subscribedAt: Date;
 }

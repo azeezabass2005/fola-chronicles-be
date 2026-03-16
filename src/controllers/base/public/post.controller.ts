@@ -4,8 +4,8 @@ import PostService from "../../../services/post.service";
 import errorResponseMessage from "../../../common/messages/error-response-message";
 import { IPost } from "../../../models/interface";
 import { validatePostCreate } from "../../../validators";
-import { populate } from "dotenv";
 import { PUBLICATION_STATUS } from "../../../common/constant";
+import { QueryFilters, SortOptions } from "../../../types/common.types";
 
 /**
  * Controller handling post-related operations
@@ -29,17 +29,8 @@ class PostController extends BaseController {
    * @protected
    */
   protected setupRoutes(): void {
-    // Get posts route
     this.router.get("/", this.getPosts.bind(this));
-
-    // Get single post route
-    // this.router.get("/:id", this.getPostById.bind(this));
-
-    // Get single post by slug
     this.router.get("/:slug", this.getPostBySlug.bind(this));
-
-    // Update post route
-    this.router.patch("/:id", this.updatePost.bind(this));
   }
 
   /**
@@ -52,10 +43,10 @@ class PostController extends BaseController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const { page, limit, searchTerm, category, status, tags, sort, order } =
+      const { page, limit, searchTerm, category, status, tags, sort, order, startDate, endDate } =
         req.query;
 
-      const filters: any = {
+      const filters: QueryFilters = {
         publicationStatus: PUBLICATION_STATUS.PUBLISHED,
       };
 
@@ -74,9 +65,22 @@ class PostController extends BaseController {
         }
       }
 
+      // Add date range filtering
+      if (startDate || endDate) {
+        filters.createdAt = {};
+        if (startDate) {
+          filters.createdAt.$gte = new Date(startDate as string);
+        }
+        if (endDate) {
+          const end = new Date(endDate as string);
+          end.setHours(23, 59, 59, 999); // Include the entire end date
+          filters.createdAt.$lte = end;
+        }
+      }
+
       const sortField = (sort as string) || "createdAt";
       const sortOrder = (order as string) === "asc" ? 1 : -1;
-      const sortOptions: Record<string, any> = { [sortField]: sortOrder };
+      const sortOptions: SortOptions = { [sortField]: sortOrder };
 
       let posts;
 
@@ -155,6 +159,12 @@ class PostController extends BaseController {
         throw errorResponseMessage.resourceNotFound("Post");
       }
 
+      // Increment view count asynchronously (don't wait for it)
+      this.postService.incrementViewCount(post._id.toString()).catch((error) => {
+        // Log error but don't fail the request
+        this.logger?.error('Failed to increment view count:', { error, postId: post._id });
+      });
+
       const relatedPosts = await this.postService.getRelatedPosts(post, {
         limit: 5,
         includeSameUser: true,
@@ -165,27 +175,6 @@ class PostController extends BaseController {
     }
   }
 
-  /**
-   * Updates a post by ID
-   * @private
-   */
-  private async updatePost(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      const post = await this.postService.updateById(req.params.id, req.body);
-
-      if (!post) {
-        throw errorResponseMessage.resourceNotFound("Post");
-      }
-
-      this.sendSuccess(res, { post });
-    } catch (error) {
-      next(error);
-    }
-  }
 }
 
 export default new PostController().router;

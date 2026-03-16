@@ -2,7 +2,7 @@ import z from "zod";
 import errorResponseMessage from "../common/messages/error-response-message";
 import {NextFunction} from "express";
 
-const zodErrorHandler = (error: any, next: NextFunction) => {
+const zodErrorHandler = (error: unknown, next: NextFunction) => {
     if (error instanceof z.ZodError) {
         next(errorResponseMessage.badRequest(error))
     } else if (error instanceof Error) {

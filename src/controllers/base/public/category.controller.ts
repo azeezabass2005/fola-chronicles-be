@@ -39,7 +39,6 @@ class CategoryController extends BaseController {
     private async createCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const categoryData: Partial<ITag> = req.body;
-            console.log(categoryData);
             const category = await this.categoryService.save({
                 ...categoryData,
             });

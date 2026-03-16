@@ -26,6 +26,8 @@ export enum ErrorResponseCode {
     UNAUTHORIZED = 401,
     /** Invalid authentication token */
     INVALID_TOKEN = 403,
+    /** Forbidden access - operation not allowed */
+    FORBIDDEN = 403,
 
     // Request Errors (400-499)
     /** Malformed or invalid request */
@@ -89,7 +91,7 @@ export class ErrorResponseMessage {
         code: ErrorResponseCode,
         message: string,
         severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        details?: any
+        details?: Record<string, unknown>
     ): ErrorResponse {
         const error = {
             response_code: code,

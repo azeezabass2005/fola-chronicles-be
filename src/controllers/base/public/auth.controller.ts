@@ -63,9 +63,20 @@ class AuthController extends BaseController {
     /**
      * Registers a new user
      * @private
+     * @security Registration is restricted to development environment only
      */
     private async register (req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
+            // Security: Restrict registration to development environment only
+            if (config.NODE_ENV !== 'development') {
+                next(errorResponseMessage.createError(
+                    ErrorResponseCode.FORBIDDEN,
+                    "Registration is disabled in production. This endpoint is only available in development mode.",
+                    ErrorSeverity.HIGH
+                ));
+                return;
+            }
+
             const { email, username, password } = req.body;
 
             if (!email || !username || !password) {
@@ -159,21 +170,17 @@ class AuthController extends BaseController {
                 expiresIn: '7d'
             });
 
-            console.log(accessToken, "This is the access token");
-            console.log(refreshToken, "This is the refresh token")
-
-            // Save refresh token to database
+            // Save refresh token to database (save tokenId from payload, not full token)
             const decodedRefresh = await this.tokenBuilder
                 .setToken(refreshToken)
                 .build()
                 .verifyToken();
 
-            console.log(decodedRefresh, "This is the decoded refresh token");
-
             if(decodedRefresh) {
+                const refreshPayload = decodedRefresh.data as IRefreshTokenPayload;
                 await this.refreshTokenService.saveRefreshToken(
                     user._id as string,
-                    refreshToken,
+                    refreshPayload.tokenId,
                     req.headers['user-agent'],
                     req.ip
                 );
@@ -352,7 +359,12 @@ class AuthController extends BaseController {
      */
     private async refreshToken (req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const { refreshToken } = req.body;
+            // Try to get refresh token from body first, then from cookies
+            let refreshToken = req.body.refreshToken;
+            
+            if (!refreshToken && req.headers.cookie) {
+                refreshToken = this.extractRefreshTokenFromCookie(req.headers.cookie);
+            }
 
             if (!refreshToken) {
                 next(errorResponseMessage.payloadIncorrect("Refresh token is required"));
@@ -402,19 +414,38 @@ class AuthController extends BaseController {
                 expiresIn: '7d'
             });
 
-            // Save new refresh token
+            // Save new refresh token (save tokenId from payload, not full token)
             const newDecodedRefresh = await this.tokenBuilder
                 .setToken(newRefreshToken)
                 .build()
                 .verifyToken();
 
-
+            const newRefreshPayload = newDecodedRefresh.data as IRefreshTokenPayload;
             await this.refreshTokenService.saveRefreshToken(
                 user._id as string,
-                (newDecodedRefresh.data as IRefreshTokenPayload).tokenId,
+                newRefreshPayload.tokenId,
                 req.headers['user-agent'],
                 req.ip
             );
+
+            // Set new tokens as cookies
+            res.cookie('accessToken', newAccessToken, {
+                httpOnly: true,
+                secure: config.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: "/",
+                maxAge: 60 * 60 * 1000,  // 1 hour
+                domain: config.COOKIE_DOMAIN,
+            });
+
+            res.cookie('refreshToken', newRefreshToken, {
+                httpOnly: true,
+                secure: config.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: "/",
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+                domain: config.COOKIE_DOMAIN,
+            });
 
             this.sendSuccess(res, {
                 accessToken: newAccessToken,
@@ -442,6 +473,31 @@ class AuthController extends BaseController {
             // Revoke all refresh tokens for the user
             await this.refreshTokenService.revokeAllUserTokens(user._id);
 
+            // Clear authentication cookies
+            res.clearCookie('accessToken', {
+                httpOnly: true,
+                secure: config.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: "/",
+                domain: config.COOKIE_DOMAIN,
+            });
+
+            res.clearCookie('refreshToken', {
+                httpOnly: true,
+                secure: config.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: "/",
+                domain: config.COOKIE_DOMAIN,
+            });
+
+            res.clearCookie('role', {
+                httpOnly: false,
+                secure: config.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: "/",
+                domain: config.COOKIE_DOMAIN,
+            });
+
             this.sendSuccess(res, {
                 message: "Logged out from all sessions successfully"
             });
@@ -449,6 +505,24 @@ class AuthController extends BaseController {
             next(error);
         }
     };
+
+    /**
+     * Extracts refresh token from cookie string
+     * @param cookieString Cookie header string
+     * @returns Refresh token or undefined
+     */
+    private extractRefreshTokenFromCookie(cookieString: string): string | undefined {
+        const cookies = cookieString.split(';').map(cookie => cookie.trim());
+
+        for (const cookie of cookies) {
+            const [name, value] = cookie.split('=');
+            if (name === 'refreshToken') {
+                return value;
+            }
+        }
+
+        return undefined;
+    }
 
 }
 

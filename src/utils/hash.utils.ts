@@ -1,4 +1,5 @@
 import argon2 from 'argon2';
+import logger from './logger.utils';
 
 export interface IHash {
     password: string;
@@ -20,7 +21,10 @@ export class HashService {
                 password: hashedPassword,
             };
         } catch (error) {
-            console.error('Password hashing failed', error);
+            logger.error('Password hashing failed', {
+                error: error instanceof Error ? error.message : error,
+                stack: error instanceof Error ? error.stack : undefined
+            });
             throw new Error('Password hashing failed');
         }
     }
@@ -38,7 +42,10 @@ export class HashService {
         try {
             return await argon2.verify(hashedPassword, plainPassword);
         } catch (error) {
-            console.error('Password verification failed', error);
+            logger.error('Password verification failed', {
+                error: error instanceof Error ? error.message : error,
+                stack: error instanceof Error ? error.stack : undefined
+            });
             return false;
         }
     }

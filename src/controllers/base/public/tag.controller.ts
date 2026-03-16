@@ -39,7 +39,6 @@ class TagController extends BaseController {
     private async createTag(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const tagData: Partial<ITag> = req.body;
-            console.log(tagData);
             const tag = await this.tagService.save({
                 ...tagData,
             });

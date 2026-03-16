@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import TokenBuilder from "../utils/token.utils";
 import UserService from "../services/user.service";
+import logger from "../utils/logger.utils";
+import { TokenVerificationResult } from "../types/common.types";
 
 class AuthMiddleware {
     /**
@@ -39,7 +41,8 @@ class AuthMiddleware {
 
             // Validate and parse token
             const token = this.parseToken(tokenString);
-            const { data, iat, exp }: any = await token.verifyToken();
+            const verificationResult: TokenVerificationResult = await token.verifyToken();
+            const { data, iat, exp } = verificationResult;
 
             // Validate token contents
             if (!data?.email || !data?.userId) {
@@ -60,7 +63,7 @@ class AuthMiddleware {
             next();
             return;
         } catch (error) {
-            console.error("Authorization error:", error);
+            logger.error("Authorization error:", { error, path: req.path, method: req.method });
             res.status(401).json({
                 success: false,
                 message: "Unauthorized"
@@ -69,13 +72,6 @@ class AuthMiddleware {
         }
     }
 
-    async logoutAll(
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ) {
-        // Implementation for logout all functionality
-    }
 
     /**
      * Extracts access token from cookie string

@@ -27,11 +27,8 @@ export async function backfillSlugs() {
 
         post.slug = slug;
         await post.save();
-
-        console.log(`✔ ${post._id} → ${slug}`);
     }
 
-    console.log("🎉 Slug backfill complete");
     process.exit(0);
 }
 

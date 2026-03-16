@@ -5,6 +5,7 @@ import { HydratedDocument, PipelineStage } from "mongoose";
 import errorResponseMessage from "../common/messages/error-response-message";
 import TagService from "./tag.service";
 import CategoryService from "./category.service";
+import { SortOptions } from "../types/common.types";
 
 /**
  * Service class for User-related database operations
@@ -205,11 +206,11 @@ class PostService extends DBService<IPost> {
       limit?: number;
       useTextSearch?: boolean;
     } = {},
-    sortOptions: Record<string, any> = { createdAt: -1 }
+    sortOptions: SortOptions = { createdAt: -1 }
   ) {
     const { page = 1, limit = 10, useTextSearch = false } = options;
 
-    let query: any = { ...filters };
+    let query: QueryFilters = { ...filters };
 
     if (searchTerm?.trim()) {
       const cleanedSearchTerm = searchTerm.trim();
@@ -232,7 +233,7 @@ class PostService extends DBService<IPost> {
         const categoryIds = matchingCategories.map((c) => c._id);
         const tagIds = matchingTags.map((t) => t._id);
 
-        const searchConditions: any[] = [
+        const searchConditions: QueryFilters[] = [
           { title: regex },
           { content: regex },
           { slug: regex },

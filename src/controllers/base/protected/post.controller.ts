@@ -137,14 +137,14 @@ class PostController extends BaseController {
                     filters,
                     {
                         page: parseInt(page as string) || 1,
-                        limit: parseInt(limit as string) || 10,
+                        limit: Math.min(parseInt(limit as string) || 10, 50),
                         useTextSearch: false
                     }
                 );
             } else {
                 posts = await this.postService.paginate(filters, {
                     page: parseInt(page as string) || 1,
-                    limit: parseInt(limit as string) || 10,
+                    limit: Math.min(parseInt(limit as string) || 10, 50),
                     sort: { createdAt: -1 },
                     populate: ["user", "tags", "category"]
                 });
@@ -187,10 +187,15 @@ class PostController extends BaseController {
      */
     private async updatePost(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
+            const user = res.locals.user;
             const existingPost = await this.postService.findById(req.params.id);
-            
+
             if (!existingPost) {
                 throw errorResponseMessage.resourceNotFound('Post');
+            }
+
+            if (existingPost.user?.toString() !== user._id?.toString()) {
+                throw errorResponseMessage.unauthorized("You can only modify your own posts");
             }
 
             const { category, tags, ...postData } = req.body;
@@ -291,11 +296,18 @@ class PostController extends BaseController {
      */
     private async deletePost(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
-            const post = await this.postService.deleteById(req.params.id);
+            const user = res.locals.user;
+            const existingPost = await this.postService.findById(req.params.id);
 
-            if (!post) {
+            if (!existingPost) {
                 throw errorResponseMessage.resourceNotFound('Post');
             }
+
+            if (existingPost.user?.toString() !== user._id?.toString()) {
+                throw errorResponseMessage.unauthorized("You can only delete your own posts");
+            }
+
+            await this.postService.deleteById(req.params.id);
 
             this.sendSuccess(res, {message: 'Post deleted successfully'});
         } catch (error) {

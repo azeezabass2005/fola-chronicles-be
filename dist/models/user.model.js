@@ -24,7 +24,6 @@ exports.UserSchema = new mongoose_1.Schema({
         trim: true,
         minlength: [3, 'Username must be at least 3 characters long'],
         maxlength: [30, 'Username must not exceed 30 characters'],
-        index: true
     },
     /**
      * Hashed password for user authentication
@@ -47,7 +46,6 @@ exports.UserSchema = new mongoose_1.Schema({
         unique: true,
         lowercase: true,
         trim: true,
-        index: true,
         validate: {
             validator: function (v) {
                 return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);

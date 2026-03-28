@@ -131,14 +131,14 @@ class PostController extends base_controller_1.default {
                 if (searchTerm) {
                     posts = yield this.postService.searchPosts(searchTerm.toString(), filters, {
                         page: parseInt(page) || 1,
-                        limit: parseInt(limit) || 10,
+                        limit: Math.min(parseInt(limit) || 10, 50),
                         useTextSearch: false
                     });
                 }
                 else {
                     posts = yield this.postService.paginate(filters, {
                         page: parseInt(page) || 1,
-                        limit: parseInt(limit) || 10,
+                        limit: Math.min(parseInt(limit) || 10, 50),
                         sort: { createdAt: -1 },
                         populate: ["user", "tags", "category"]
                     });
@@ -180,12 +180,17 @@ class PostController extends base_controller_1.default {
      */
     updatePost(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             try {
+                const user = res.locals.user;
                 const existingPost = yield this.postService.findById(req.params.id);
                 if (!existingPost) {
                     throw error_response_message_1.default.resourceNotFound('Post');
                 }
-                const _a = req.body, { category, tags } = _a, postData = __rest(_a, ["category", "tags"]);
+                if (((_a = existingPost.user) === null || _a === void 0 ? void 0 : _a.toString()) !== ((_b = user._id) === null || _b === void 0 ? void 0 : _b.toString())) {
+                    throw error_response_message_1.default.unauthorized("You can only modify your own posts");
+                }
+                const _c = req.body, { category, tags } = _c, postData = __rest(_c, ["category", "tags"]);
                 // Sanitize user input to prevent XSS attacks
                 const sanitizedUpdateData = {};
                 if (postData.title !== undefined) {
@@ -271,11 +276,17 @@ class PostController extends base_controller_1.default {
      */
     deletePost(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             try {
-                const post = yield this.postService.deleteById(req.params.id);
-                if (!post) {
+                const user = res.locals.user;
+                const existingPost = yield this.postService.findById(req.params.id);
+                if (!existingPost) {
                     throw error_response_message_1.default.resourceNotFound('Post');
                 }
+                if (((_a = existingPost.user) === null || _a === void 0 ? void 0 : _a.toString()) !== ((_b = user._id) === null || _b === void 0 ? void 0 : _b.toString())) {
+                    throw error_response_message_1.default.unauthorized("You can only delete your own posts");
+                }
+                yield this.postService.deleteById(req.params.id);
                 this.sendSuccess(res, { message: 'Post deleted successfully' });
             }
             catch (error) {

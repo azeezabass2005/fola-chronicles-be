@@ -207,7 +207,7 @@ class AuthController extends BaseController {
             });
 
             res.cookie('role', Object.entries(ROLE_MAP).find(([_, v]) => v === user.role)?.[0], {
-                httpOnly: false, // Allow client-side access (if needed)
+                httpOnly: true,
                 secure: config.NODE_ENV === 'production',
                 // secure: true,
                 sameSite: 'lax',
@@ -491,7 +491,7 @@ class AuthController extends BaseController {
             });
 
             res.clearCookie('role', {
-                httpOnly: false,
+                httpOnly: true,
                 secure: config.NODE_ENV === 'production',
                 sameSite: 'lax',
                 path: "/",

@@ -25,10 +25,7 @@ class TagController extends BaseController {
      * @protected
      */
     protected setupRoutes(): void {
-        // Create tag route
-        this.router.post("/", validateTagCreate, this.createTag.bind(this));
-
-        // Gets tag route
+        // Gets tag route (public)
         this.router.get("/", this.getTags.bind(this));
     }
 

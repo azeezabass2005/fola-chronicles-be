@@ -68,11 +68,10 @@ export const PostSchema = new Schema<IPost>(
          * @type {Schema.Types.ObjectId}
          * @required
          */
-        category: { 
-            type: Schema.Types.ObjectId, 
-            ref: "Category", 
+        category: {
+            type: Schema.Types.ObjectId,
+            ref: "Category",
             required: [true, 'Post category is required'],
-            index: true
         },
 
         /**
@@ -83,7 +82,6 @@ export const PostSchema = new Schema<IPost>(
         slug: {
             type: String,
             unique: true,
-            index: true
         },
 
         /**
@@ -92,11 +90,10 @@ export const PostSchema = new Schema<IPost>(
          * @required
          * @ref UserModel
          */
-        user: { 
-            type: Schema.Types.ObjectId, 
-            ref: MODEL_NAME.USER, 
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: MODEL_NAME.USER,
             required: [true, 'Post user is required'],
-            index: true
         },
 
         /**
@@ -139,14 +136,13 @@ export const PostSchema = new Schema<IPost>(
          * @type {PublicationStatus}
          * @default draft
          */
-        publicationStatus: { 
-            type: String, 
+        publicationStatus: {
+            type: String,
             enum: {
                 values: Object.values(PUBLICATION_STATUS),
                 message: 'Invalid publication status'
             },
             default: PUBLICATION_STATUS.DRAFT,
-            index: true
         }
 
     },

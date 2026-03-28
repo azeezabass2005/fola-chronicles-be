@@ -68,6 +68,24 @@ class App {
         });
         this.app.use('/api', limiter);
 
+        // Stricter rate limiting for auth endpoints (prevent brute force)
+        const authLimiter = rateLimit({
+            windowMs: 15 * 60 * 1000, // 15 minutes
+            limit: 10, // 10 attempts per window
+            handler: (req: Request, res: Response) => {
+                logger.warn('Auth rate limit exceeded', {
+                    ip: req.ip,
+                    path: req.path
+                });
+                res.status(429).json({
+                    success: false,
+                    message: 'Too many authentication attempts, please try again later'
+                });
+            }
+        });
+        this.app.use(`/api/${config.API_VERSION}/public/auth/login`, authLimiter);
+        this.app.use(`/api/${config.API_VERSION}/public/auth/register`, authLimiter);
+
         // Body parsing
         this.app.use(express.json({ limit: '10mb' }));
         this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));

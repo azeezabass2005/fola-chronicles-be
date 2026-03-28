@@ -79,7 +79,6 @@ exports.PostSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Category",
         required: [true, 'Post category is required'],
-        index: true
     },
     /**
      * Slug of the post
@@ -89,7 +88,6 @@ exports.PostSchema = new mongoose_1.Schema({
     slug: {
         type: String,
         unique: true,
-        index: true
     },
     /**
      * User ID of the post creator
@@ -101,7 +99,6 @@ exports.PostSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: constant_1.MODEL_NAME.USER,
         required: [true, 'Post user is required'],
-        index: true
     },
     /**
      * Number of views for the post
@@ -145,7 +142,6 @@ exports.PostSchema = new mongoose_1.Schema({
             message: 'Invalid publication status'
         },
         default: constant_1.PUBLICATION_STATUS.DRAFT,
-        index: true
     }
 }, {
     /** Enable virtual properties when converting to plain object */

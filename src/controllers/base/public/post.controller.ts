@@ -86,7 +86,7 @@ class PostController extends BaseController {
       let posts;
 
       const paginationPage = parseInt(page as string) || 1;
-      const paginationLimit = parseInt(limit as string) || 6;
+      const paginationLimit = Math.min(parseInt(limit as string) || 6, 50);
 
       if (searchTerm) {
         const term = searchTerm.toString().trim();

@@ -17,14 +17,13 @@ export const UserSchema = new Schema<IUser>(
          * @type {string}
          * @required
          */
-        username: { 
-            type: String, 
+        username: {
+            type: String,
             required: [true, 'Username is required'],
             unique: true,
             trim: true,
             minlength: [3, 'Username must be at least 3 characters long'],
             maxlength: [30, 'Username must not exceed 30 characters'],
-            index: true
         },
 
         /**
@@ -43,13 +42,12 @@ export const UserSchema = new Schema<IUser>(
          * @type {string}
          * @required
          */
-        email: { 
-            type: String, 
+        email: {
+            type: String,
             required: [true, 'Email is required'],
             unique: true,
             lowercase: true,
             trim: true,
-            index: true,
             validate: {
                 validator: function(v: string) {
                     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);

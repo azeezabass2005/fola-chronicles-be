@@ -43,11 +43,7 @@ class DatabaseService {
 
     public async connect(): Promise<void> {
         try {
-            await mongoose.connect(config.MONGODB_URI, {
-                maxPoolSize: 10,
-                socketTimeoutMS: 45000,
-                serverSelectionTimeoutMS: 5000,
-            });
+            await mongoose.connect(config.MONGODB_URI);
             logger.info('Connected to MongoDB successfully', {
                 uri: config.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@') // Hide credentials in logs
             });

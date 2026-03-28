@@ -106,7 +106,6 @@ class PostController extends BaseController {
           limit: paginationLimit,
           sort: sortOptions,
           populate: ["user", "tags", "category"],
-          select: ["-content"],
         });
       }
 

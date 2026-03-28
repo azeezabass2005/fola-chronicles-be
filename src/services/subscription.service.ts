@@ -35,12 +35,13 @@ class SubscriptionService extends DBService<ISubscription> {
             }
             // If exists but not confirmed, update with new token
             const confirmationToken = this.generateConfirmationToken();
-            return await this.updateById(existing._id as string, {
+            const updated = await this.updateById(existing._id as string, {
                 confirmationToken,
                 isActive: true,
                 subscribedAt: new Date(),
                 unsubscribedAt: undefined,
             });
+            return updated!;
         }
 
         // Create new subscription
@@ -96,7 +97,7 @@ class SubscriptionService extends DBService<ISubscription> {
      * @returns {Promise<ISubscription[]>} Array of active subscriptions
      */
     async getActiveSubscriptions(): Promise<ISubscription[]> {
-        return await this.findMany({
+        return await this.find({
             isActive: true,
             isConfirmed: true,
         });

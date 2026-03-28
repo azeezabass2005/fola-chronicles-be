@@ -31,6 +31,8 @@ var ErrorResponseCode;
     ErrorResponseCode[ErrorResponseCode["UNAUTHORIZED"] = 401] = "UNAUTHORIZED";
     /** Invalid authentication token */
     ErrorResponseCode[ErrorResponseCode["INVALID_TOKEN"] = 403] = "INVALID_TOKEN";
+    /** Forbidden access - operation not allowed */
+    ErrorResponseCode[ErrorResponseCode["FORBIDDEN"] = 403] = "FORBIDDEN";
     // Request Errors (400-499)
     /** Malformed or invalid request */
     ErrorResponseCode[ErrorResponseCode["BAD_REQUEST"] = 400] = "BAD_REQUEST";
@@ -43,6 +45,10 @@ var ErrorResponseCode;
     ErrorResponseCode[ErrorResponseCode["PAYLOAD_INCORRECT"] = 400] = "PAYLOAD_INCORRECT";
     /** Resource already exists */
     ErrorResponseCode[ErrorResponseCode["RESOURCE_ALREADY_EXISTS"] = 409] = "RESOURCE_ALREADY_EXISTS";
+    /** Validation error */
+    ErrorResponseCode[ErrorResponseCode["VALIDATION_ERROR"] = 422] = "VALIDATION_ERROR";
+    /** Resource not found */
+    ErrorResponseCode[ErrorResponseCode["RESOURCE_NOT_FOUND"] = 404] = "RESOURCE_NOT_FOUND";
     // System Errors (500-599)
     /** Internal server error */
     ErrorResponseCode[ErrorResponseCode["INTERNAL_SERVER_ERROR"] = 500] = "INTERNAL_SERVER_ERROR";

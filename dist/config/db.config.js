@@ -51,7 +51,11 @@ class DatabaseService {
     connect() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                yield mongoose_1.default.connect(env_config_1.default.MONGODB_URI);
+                yield mongoose_1.default.connect(env_config_1.default.MONGODB_URI, {
+                    maxPoolSize: 10,
+                    socketTimeoutMS: 45000,
+                    serverSelectionTimeoutMS: 5000,
+                });
                 logger_utils_1.default.info('Connected to MongoDB successfully', {
                     uri: env_config_1.default.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@') // Hide credentials in logs
                 });

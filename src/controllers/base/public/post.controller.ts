@@ -67,15 +67,16 @@ class PostController extends BaseController {
 
       // Add date range filtering
       if (startDate || endDate) {
-        filters.createdAt = {};
+        const dateFilter: Record<string, Date> = {};
         if (startDate) {
-          filters.createdAt.$gte = new Date(startDate as string);
+          dateFilter.$gte = new Date(startDate as string);
         }
         if (endDate) {
           const end = new Date(endDate as string);
           end.setHours(23, 59, 59, 999); // Include the entire end date
-          filters.createdAt.$lte = end;
+          dateFilter.$lte = end;
         }
+        filters.createdAt = dateFilter;
       }
 
       const sortField = (sort as string) || "createdAt";
@@ -84,26 +85,32 @@ class PostController extends BaseController {
 
       let posts;
 
+      const paginationPage = parseInt(page as string) || 1;
+      const paginationLimit = parseInt(limit as string) || 6;
+
       if (searchTerm) {
+        const term = searchTerm.toString().trim();
         posts = await this.postService.searchPosts(
-          searchTerm.toString(),
+          term,
           filters,
           {
-            page: parseInt(page as string) || 1,
-            limit: parseInt(limit as string) || 6,
-            useTextSearch: false,
+            page: paginationPage,
+            limit: paginationLimit,
+            useTextSearch: term.length >= 3,
           },
           sortOptions
         );
       } else {
         posts = await this.postService.paginate(filters, {
-          page: parseInt(page as string) || 1,
-          limit: parseInt(limit as string) || 6,
+          page: paginationPage,
+          limit: paginationLimit,
           sort: sortOptions,
           populate: ["user", "tags", "category"],
+          select: ["-content"],
         });
       }
 
+      res.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=30");
       this.sendSuccess(res, { posts });
     } catch (error) {
       next(error);
@@ -160,7 +167,7 @@ class PostController extends BaseController {
       }
 
       // Increment view count asynchronously (don't wait for it)
-      this.postService.incrementViewCount(post._id.toString()).catch((error) => {
+      this.postService.incrementViewCount((post._id as string).toString()).catch((error) => {
         // Log error but don't fail the request
         this.logger?.error('Failed to increment view count:', { error, postId: post._id });
       });
@@ -169,6 +176,7 @@ class PostController extends BaseController {
         limit: 5,
         includeSameUser: true,
       });
+      res.set("Cache-Control", "public, s-maxage=120, stale-while-revalidate=60");
       this.sendSuccess(res, { post, relatedPosts });
     } catch (error) {
       next(error);

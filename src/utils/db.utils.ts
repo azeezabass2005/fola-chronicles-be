@@ -2,7 +2,7 @@ import {
     Model,
     HydratedDocument,
     ClientSession,
-    FilterQuery, Aggregate, PipelineStage,
+    FilterQuery, Aggregate, PipelineStage, AnyBulkWriteOperation,
 } from "mongoose";
 import { UpdateData } from "../types/common.types";
 import logger from "./logger.utils";
@@ -302,11 +302,11 @@ class DBService<T> {
      * @returns {Promise<unknown>} Result of bulk write operations
      */
     public async bulkWrite(
-        operations: PipelineStage[],
+        operations: AnyBulkWriteOperation<T>[],
         session?: ClientSession
     ): Promise<unknown> {
         return this.executeWithErrorHandling(async () => {
-            return this.Model.bulkWrite(operations, { session });
+            return this.Model.bulkWrite(operations as any, { session });
         }, 'Bulk write operation failed');
     }
 

@@ -6,7 +6,8 @@ exports.MODEL_NAME = {
     POST: "Post",
     REFRESH_TOKEN: "RefreshToken",
     TAG: "Tag",
-    CATEGORY: "Category"
+    CATEGORY: "Category",
+    SUBSCRIPTION: "Subscription"
 };
 exports.ROLE_MAP = {
     USER: 6483,

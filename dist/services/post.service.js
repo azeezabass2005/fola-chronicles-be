@@ -17,6 +17,7 @@ const post_model_1 = __importDefault(require("../models/post.model"));
 const error_response_message_1 = __importDefault(require("../common/messages/error-response-message"));
 const tag_service_1 = __importDefault(require("./tag.service"));
 const category_service_1 = __importDefault(require("./category.service"));
+const constant_1 = require("../common/constant");
 /**
  * Service class for User-related database operations
  *
@@ -48,7 +49,7 @@ class PostService extends db_utils_1.default {
                     $add: [
                         1,
                         {
-                            $divide: [{ $subtract: [new Date(), "$publishedAt"] }, DAY_IN_MS],
+                            $divide: [{ $subtract: [new Date(), "$createdAt"] }, DAY_IN_MS],
                         },
                     ],
                 },
@@ -73,19 +74,22 @@ class PostService extends db_utils_1.default {
             if (!originalPost) {
                 throw error_response_message_1.default.resourceNotFound("Post");
             }
+            const matchFilter = Object.assign({ _id: { $ne: originalPost._id }, publicationStatus: constant_1.PUBLICATION_STATUS.PUBLISHED }, (!includeSameUser && originalPost.user
+                ? { user: { $ne: originalPost.user } }
+                : {}));
+            // Match posts that share tags or category
+            const orConditions = [];
+            if (originalPost.tags && originalPost.tags.length > 0) {
+                orConditions.push({ tags: { $in: originalPost.tags } });
+            }
+            if (originalPost.category) {
+                orConditions.push({ category: originalPost.category });
+            }
+            if (orConditions.length > 0) {
+                matchFilter.$or = orConditions;
+            }
             const pipeline = [
-                {
-                    $match: {
-                        $text: {
-                            $search: `${originalPost.title} ${originalPost.content}`,
-                        },
-                    },
-                },
-                {
-                    $match: Object.assign({ _id: { $ne: originalPost._id } }, (!includeSameUser && originalPost.user
-                        ? { user: { $ne: originalPost.user } }
-                        : {})),
-                },
+                { $match: matchFilter },
                 {
                     $addFields: {
                         categoryScore: {
@@ -105,14 +109,11 @@ class PostService extends db_utils_1.default {
                                 tagWeight,
                             ],
                         },
-                        textScore: {
-                            $multiply: [{ $meta: "textScore" }, textSimilarityWeight],
-                        },
                         engagementScore: {
                             $multiply: [
                                 {
                                     $divide: [
-                                        { $add: ["$viewCount", { $multiply: ["$likeCount", 2] }] },
+                                        { $add: [{ $ifNull: ["$viewCount", 0] }, { $multiply: [{ $ifNull: ["$likeCount", 0] }, 2] }] },
                                         100,
                                     ],
                                 },
@@ -130,7 +131,6 @@ class PostService extends db_utils_1.default {
                             $add: [
                                 "$categoryScore",
                                 "$tagScore",
-                                "$textScore",
                                 "$engagementScore",
                                 "$timeDecayScore",
                             ],
@@ -139,6 +139,11 @@ class PostService extends db_utils_1.default {
                 },
                 { $sort: { finalScore: -1 } },
                 { $limit: limit },
+                {
+                    $project: {
+                        content: 0,
+                    },
+                },
             ];
             return this.aggregate(pipeline);
         });
@@ -157,10 +162,10 @@ class PostService extends db_utils_1.default {
     updateLikeCount(postId_1) {
         return __awaiter(this, arguments, void 0, function* (postId, likeUpdateType = "increment") {
             if (likeUpdateType === "decrement") {
-                yield this.updateById(postId, { $inc: { likeCount: 1 } });
+                yield this.updateById(postId, { $inc: { likeCount: -1 } });
             }
             else {
-                yield this.updateById(postId, { dec: { likeCount: 1 } });
+                yield this.updateById(postId, { $inc: { likeCount: 1 } });
             }
         });
     }
@@ -191,7 +196,6 @@ class PostService extends db_utils_1.default {
                     const tagIds = matchingTags.map((t) => t._id);
                     const searchConditions = [
                         { title: regex },
-                        { content: regex },
                         { slug: regex },
                     ];
                     if (categoryIds.length > 0) {

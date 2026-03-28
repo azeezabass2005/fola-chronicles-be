@@ -42,6 +42,10 @@ export enum ErrorResponseCode {
     PAYLOAD_INCORRECT = 400,
     /** Resource already exists */
     RESOURCE_ALREADY_EXISTS = 409,
+    /** Validation error */
+    VALIDATION_ERROR = 422,
+    /** Resource not found */
+    RESOURCE_NOT_FOUND = 404,
 
     // System Errors (500-599)
     /** Internal server error */
@@ -130,7 +134,7 @@ export class ErrorResponseMessage {
             ErrorResponseCode.PAYLOAD_INCORRECT,
             `Payload is incorrect, check and try again!`,
             ErrorSeverity.HIGH,
-            error
+            error as unknown as Record<string, unknown>
         );
     }
 

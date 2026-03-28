@@ -5,7 +5,8 @@ import { HydratedDocument, PipelineStage } from "mongoose";
 import errorResponseMessage from "../common/messages/error-response-message";
 import TagService from "./tag.service";
 import CategoryService from "./category.service";
-import { SortOptions } from "../types/common.types";
+import { SortOptions, QueryFilters } from "../types/common.types";
+import { PUBLICATION_STATUS } from "../common/constant";
 
 /**
  * Service class for User-related database operations
@@ -42,7 +43,7 @@ class PostService extends DBService<IPost> {
           $add: [
             1,
             {
-              $divide: [{ $subtract: [new Date(), "$publishedAt"] }, DAY_IN_MS],
+              $divide: [{ $subtract: [new Date(), "$createdAt"] }, DAY_IN_MS],
             },
           ],
         },
@@ -89,23 +90,29 @@ class PostService extends DBService<IPost> {
       throw errorResponseMessage.resourceNotFound("Post");
     }
 
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          $text: {
-            $search: `${originalPost.title} ${originalPost.content}`,
-          },
-        },
-      },
+    const matchFilter: Record<string, any> = {
+      _id: { $ne: originalPost._id },
+      publicationStatus: PUBLICATION_STATUS.PUBLISHED,
+      ...(!includeSameUser && originalPost.user
+        ? { user: { $ne: originalPost.user } }
+        : {}),
+    };
 
-      {
-        $match: {
-          _id: { $ne: originalPost._id },
-          ...(!includeSameUser && originalPost.user
-            ? { user: { $ne: originalPost.user } }
-            : {}),
-        },
-      },
+    // Match posts that share tags or category
+    const orConditions: Record<string, any>[] = [];
+    if (originalPost.tags && originalPost.tags.length > 0) {
+      orConditions.push({ tags: { $in: originalPost.tags } });
+    }
+    if (originalPost.category) {
+      orConditions.push({ category: originalPost.category });
+    }
+
+    if (orConditions.length > 0) {
+      matchFilter.$or = orConditions;
+    }
+
+    const pipeline: PipelineStage[] = [
+      { $match: matchFilter },
 
       {
         $addFields: {
@@ -128,15 +135,11 @@ class PostService extends DBService<IPost> {
             ],
           },
 
-          textScore: {
-            $multiply: [{ $meta: "textScore" }, textSimilarityWeight],
-          },
-
           engagementScore: {
             $multiply: [
               {
                 $divide: [
-                  { $add: ["$viewCount", { $multiply: ["$likeCount", 2] }] },
+                  { $add: [{ $ifNull: ["$viewCount", 0] }, { $multiply: [{ $ifNull: ["$likeCount", 0] }, 2] }] },
                   100,
                 ],
               },
@@ -156,7 +159,6 @@ class PostService extends DBService<IPost> {
             $add: [
               "$categoryScore",
               "$tagScore",
-              "$textScore",
               "$engagementScore",
               "$timeDecayScore",
             ],
@@ -166,16 +168,21 @@ class PostService extends DBService<IPost> {
 
       { $sort: { finalScore: -1 } },
       { $limit: limit },
+      {
+        $project: {
+          content: 0,
+        },
+      },
     ];
 
-    return this.aggregate(pipeline);
+    return this.aggregate(pipeline) as Promise<HydratedDocument<IPost>[]>;
   }
 
   /**
    * Increment view count for a post
    */
   public async incrementViewCount(postId: string): Promise<void> {
-    await this.updateById(postId, { $inc: { viewCount: 1 } });
+    await this.updateById(postId, { $inc: { viewCount: 1 } } as any);
   }
 
   /**
@@ -186,9 +193,9 @@ class PostService extends DBService<IPost> {
     likeUpdateType = "increment"
   ): Promise<void> {
     if (likeUpdateType === "decrement") {
-      await this.updateById(postId, { $inc: { likeCount: 1 } });
+      await this.updateById(postId, { $inc: { likeCount: -1 } } as any);
     } else {
-      await this.updateById(postId, { dec: { likeCount: 1 } });
+      await this.updateById(postId, { $inc: { likeCount: 1 } } as any);
     }
   }
 
@@ -206,7 +213,7 @@ class PostService extends DBService<IPost> {
       limit?: number;
       useTextSearch?: boolean;
     } = {},
-    sortOptions: SortOptions = { createdAt: -1 }
+    sortOptions: Record<string, any> = { createdAt: -1 }
   ) {
     const { page = 1, limit = 10, useTextSearch = false } = options;
 
@@ -235,7 +242,6 @@ class PostService extends DBService<IPost> {
 
         const searchConditions: QueryFilters[] = [
           { title: regex },
-          { content: regex },
           { slug: regex },
         ];
 

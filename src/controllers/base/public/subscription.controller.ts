@@ -3,8 +3,7 @@ import BaseController from "../../base/base-controller";
 import SubscriptionService from "../../../services/subscription.service";
 import EmailService from "../../../utils/email.utils";
 import errorResponseMessage from "../../../common/messages/error-response-message";
-import { ErrorResponseCode } from "../../../common/types";
-import { ErrorSeverity } from "../../../common/types";
+import { ErrorResponseCode, ErrorSeverity } from "../../../common/messages/error-response-message";
 import config from "../../../config/env.config";
 import logger from "../../../utils/logger.utils";
 

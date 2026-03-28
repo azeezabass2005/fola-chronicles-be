@@ -94,10 +94,16 @@ class AuthController extends base_controller_1.default {
     /**
      * Registers a new user
      * @private
+     * @security Registration is restricted to development environment only
      */
     register(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                // Security: Restrict registration to development environment only
+                if (env_config_1.default.NODE_ENV !== 'development') {
+                    next(error_response_message_1.default.createError(error_response_message_1.ErrorResponseCode.FORBIDDEN, "Registration is disabled in production. This endpoint is only available in development mode.", error_response_message_1.ErrorSeverity.HIGH));
+                    return;
+                }
                 const { email, username, password } = req.body;
                 if (!email || !username || !password) {
                     next(error_response_message_1.default.payloadIncorrect("Email, username and password are required"));
@@ -171,16 +177,14 @@ class AuthController extends base_controller_1.default {
                     type: interface_1.TokenType.REFRESH,
                     expiresIn: '7d'
                 });
-                console.log(accessToken, "This is the access token");
-                console.log(refreshToken, "This is the refresh token");
-                // Save refresh token to database
+                // Save refresh token to database (save tokenId from payload, not full token)
                 const decodedRefresh = yield this.tokenBuilder
                     .setToken(refreshToken)
                     .build()
                     .verifyToken();
-                console.log(decodedRefresh, "This is the decoded refresh token");
                 if (decodedRefresh) {
-                    yield this.refreshTokenService.saveRefreshToken(user._id, refreshToken, req.headers['user-agent'], req.ip);
+                    const refreshPayload = decodedRefresh.data;
+                    yield this.refreshTokenService.saveRefreshToken(user._id, refreshPayload.tokenId, req.headers['user-agent'], req.ip);
                 }
                 res.cookie('accessToken', accessToken, {
                     httpOnly: true, // Secure, not accessible via JS
@@ -342,7 +346,11 @@ class AuthController extends base_controller_1.default {
     refreshToken(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { refreshToken } = req.body;
+                // Try to get refresh token from body first, then from cookies
+                let refreshToken = req.body.refreshToken;
+                if (!refreshToken && req.headers.cookie) {
+                    refreshToken = this.extractRefreshTokenFromCookie(req.headers.cookie);
+                }
                 if (!refreshToken) {
                     next(error_response_message_1.default.payloadIncorrect("Refresh token is required"));
                     return;
@@ -381,12 +389,30 @@ class AuthController extends base_controller_1.default {
                     type: interface_1.TokenType.REFRESH,
                     expiresIn: '7d'
                 });
-                // Save new refresh token
+                // Save new refresh token (save tokenId from payload, not full token)
                 const newDecodedRefresh = yield this.tokenBuilder
                     .setToken(newRefreshToken)
                     .build()
                     .verifyToken();
-                yield this.refreshTokenService.saveRefreshToken(user._id, newDecodedRefresh.data.tokenId, req.headers['user-agent'], req.ip);
+                const newRefreshPayload = newDecodedRefresh.data;
+                yield this.refreshTokenService.saveRefreshToken(user._id, newRefreshPayload.tokenId, req.headers['user-agent'], req.ip);
+                // Set new tokens as cookies
+                res.cookie('accessToken', newAccessToken, {
+                    httpOnly: true,
+                    secure: env_config_1.default.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    path: "/",
+                    maxAge: 60 * 60 * 1000, // 1 hour
+                    domain: env_config_1.default.COOKIE_DOMAIN,
+                });
+                res.cookie('refreshToken', newRefreshToken, {
+                    httpOnly: true,
+                    secure: env_config_1.default.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    path: "/",
+                    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+                    domain: env_config_1.default.COOKIE_DOMAIN,
+                });
                 this.sendSuccess(res, {
                     accessToken: newAccessToken,
                     refreshToken: newRefreshToken
@@ -412,6 +438,28 @@ class AuthController extends base_controller_1.default {
                 }
                 // Revoke all refresh tokens for the user
                 yield this.refreshTokenService.revokeAllUserTokens(user._id);
+                // Clear authentication cookies
+                res.clearCookie('accessToken', {
+                    httpOnly: true,
+                    secure: env_config_1.default.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    path: "/",
+                    domain: env_config_1.default.COOKIE_DOMAIN,
+                });
+                res.clearCookie('refreshToken', {
+                    httpOnly: true,
+                    secure: env_config_1.default.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    path: "/",
+                    domain: env_config_1.default.COOKIE_DOMAIN,
+                });
+                res.clearCookie('role', {
+                    httpOnly: false,
+                    secure: env_config_1.default.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    path: "/",
+                    domain: env_config_1.default.COOKIE_DOMAIN,
+                });
                 this.sendSuccess(res, {
                     message: "Logged out from all sessions successfully"
                 });
@@ -422,5 +470,20 @@ class AuthController extends base_controller_1.default {
         });
     }
     ;
+    /**
+     * Extracts refresh token from cookie string
+     * @param cookieString Cookie header string
+     * @returns Refresh token or undefined
+     */
+    extractRefreshTokenFromCookie(cookieString) {
+        const cookies = cookieString.split(';').map(cookie => cookie.trim());
+        for (const cookie of cookies) {
+            const [name, value] = cookie.split('=');
+            if (name === 'refreshToken') {
+                return value;
+            }
+        }
+        return undefined;
+    }
 }
 exports.default = new AuthController().router;

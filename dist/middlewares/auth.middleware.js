@@ -25,6 +25,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const token_utils_1 = __importDefault(require("../utils/token.utils"));
 const user_service_1 = __importDefault(require("../services/user.service"));
+const logger_utils_1 = __importDefault(require("../utils/logger.utils"));
 class AuthMiddleware {
     /**
      * Validates the presence of authorization header or cookie
@@ -55,7 +56,8 @@ class AuthMiddleware {
                 }
                 // Validate and parse token
                 const token = this.parseToken(tokenString);
-                const { data, iat, exp } = yield token.verifyToken();
+                const verificationResult = yield token.verifyToken();
+                const { data, iat, exp } = verificationResult;
                 // Validate token contents
                 if (!(data === null || data === void 0 ? void 0 : data.email) || !(data === null || data === void 0 ? void 0 : data.userId)) {
                     res.status(401).json({
@@ -73,18 +75,13 @@ class AuthMiddleware {
                 return;
             }
             catch (error) {
-                console.error("Authorization error:", error);
+                logger_utils_1.default.error("Authorization error:", { error, path: req.path, method: req.method });
                 res.status(401).json({
                     success: false,
                     message: "Unauthorized"
                 });
                 return;
             }
-        });
-    }
-    logoutAll(req, res, next) {
-        return __awaiter(this, void 0, void 0, function* () {
-            // Implementation for logout all functionality
         });
     }
     /**

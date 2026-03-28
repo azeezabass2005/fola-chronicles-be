@@ -167,15 +167,16 @@ class App {
      * @private
      * @returns {string[]} Array of allowed origins
      */
-    private getCorsOrigins(): string[] | string {
+    private getCorsOrigins(): boolean | string | string[] {
         const corsOrigin = config.CORS_ORIGIN;
-        
+
         if (!corsOrigin || corsOrigin === '*') {
             // In production, '*' should not be used for security
             if (config.NODE_ENV === 'production') {
                 logger.warn('CORS_ORIGIN is set to "*" in production - this is insecure');
             }
-            return '*';
+            // Return true to reflect the request origin (works with credentials: true)
+            return true;
         }
 
         // Support comma-separated origins

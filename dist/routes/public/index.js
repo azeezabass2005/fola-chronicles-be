@@ -8,10 +8,12 @@ const auth_controller_1 = __importDefault(require("../../controllers/base/public
 const post_controller_1 = __importDefault(require("../../controllers/base/public/post.controller"));
 const tag_controller_1 = __importDefault(require("../../controllers/base/public/tag.controller"));
 const category_controller_1 = __importDefault(require("../../controllers/base/public/category.controller"));
+const subscription_controller_1 = __importDefault(require("../../controllers/base/public/subscription.controller"));
 const path = "/public";
 const publicRouter = (0, express_1.Router)();
 publicRouter.use(`${path}/auth`, auth_controller_1.default);
 publicRouter.use(`${path}/posts`, post_controller_1.default);
 publicRouter.use(`${path}/tags`, tag_controller_1.default);
 publicRouter.use(`${path}/categories`, category_controller_1.default);
+publicRouter.use(`${path}/subscription`, subscription_controller_1.default);
 exports.default = publicRouter;

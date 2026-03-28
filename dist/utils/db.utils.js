@@ -8,7 +8,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const logger_utils_1 = __importDefault(require("./logger.utils"));
 /**
  * A generic database service that provides comprehensive CRUD operations
  * with enhanced type safety and error handling
@@ -38,7 +42,10 @@ class DBService {
                 return yield operation();
             }
             catch (error) {
-                console.error(errorMessage, error);
+                logger_utils_1.default.error(errorMessage, {
+                    error: error instanceof Error ? error.message : error,
+                    stack: error instanceof Error ? error.stack : undefined
+                });
                 throw new Error(`${errorMessage}: ${error instanceof Error ? error.message : error}`);
             }
         });
@@ -63,37 +70,37 @@ class DBService {
     }
     /**
      * Creates a document using Mongoose create method
-     * @param {any} data Document to create
+     * @param {Partial<T>} data Document to create
      * @param {ClientSession} [session=null] Optional database session
-     * @returns {Promise<any>} Created document
+     * @returns {Promise<HydratedDocument<T>>} Created document
      */
     create(data, session = null) {
         return this.executeWithErrorHandling(() => this.Model.create(data), 'Create operation failed');
     }
     /**
      * Counts documents matching a query
-     * @param {any} [query={}] Query to filter documents
+     * @param {FilterQuery<T>} [query={}] Query to filter documents
      * @returns {Promise<number>} Number of matching documents
      */
     count(query = {}) {
         return this.executeWithErrorHandling(() => this.Model.countDocuments(query).maxTimeMS(30000), 'Count operation failed');
     }
     /**
-     * Updates a document by ID
-     * @param {string} id Document ID to update
-     * @param {any} data Update data
+     * Updates a document matching the query
+     * @param {FilterQuery<T>} query Query to find document
+     * @param {UpdateData<T>} data Update data
      * @param {ClientSession} [session=null] Optional database session
-     * @returns {Promise<any>} Updated document
+     * @returns {Promise<HydratedDocument<T> | null>} Updated document or null
      */
     update(query, data, session = null) {
-        return this.executeWithErrorHandling(() => this.Model.findByIdAndUpdate(query, data, { new: true }).session(session), 'Update by ID failed');
+        return this.executeWithErrorHandling(() => this.Model.findOneAndUpdate(query, data, { new: true }).session(session), 'Update operation failed');
     }
     /**
      * Updates a document by ID
      * @param {string} id Document ID to update
-     * @param {any} data Update data
+     * @param {UpdateData<T>} data Update data
      * @param {ClientSession} [session=null] Optional database session
-     * @returns {Promise<any>} Updated document
+     * @returns {Promise<HydratedDocument<T> | null>} Updated document or null
      */
     updateById(id, data, session = null) {
         return this.executeWithErrorHandling(() => this.Model.findByIdAndUpdate(id, data, { new: true }).session(session), 'Update by ID failed');
@@ -203,9 +210,9 @@ class DBService {
     }
     /**
      * Performs bulk write operations with optional transaction support
-     * @param {any[]} operations Array of bulk write operations
+     * @param {PipelineStage[]} operations Array of bulk write operations
      * @param {ClientSession} [session] Optional database session
-     * @returns {Promise<any>} Result of bulk write operations
+     * @returns {Promise<unknown>} Result of bulk write operations
      */
     bulkWrite(operations, session) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -219,7 +226,7 @@ class DBService {
      * @param {string} id The document ID to delete
      * @param {Object} [options={}] Additional delete options
      * @param {ClientSession} [options.session] Database session
-     * @returns {Promise<any>} Result of the delete operation
+     * @returns {Promise<HydratedDocument<T> | null>} Deleted document or null
      */
     deleteById(id_1) {
         return __awaiter(this, arguments, void 0, function* (id, options = {}) {
@@ -234,7 +241,7 @@ class DBService {
      * @param {FilterQuery<T>} query The query to find the document
      * @param {Object} [options={}] Additional delete options
      * @param {ClientSession} [options.session] Database session
-     * @returns {Promise<any>} Result of the delete operation
+     * @returns {Promise<HydratedDocument<T> | null>} Deleted document or null
      */
     deleteOne(query_1) {
         return __awaiter(this, arguments, void 0, function* (query, options = {}) {
@@ -249,7 +256,7 @@ class DBService {
      * @param {FilterQuery<T>} query The query to find documents
      * @param {Object} [options={}] Additional delete options
      * @param {ClientSession} [options.session] Database session
-     * @returns {Promise<any>} Result of the delete operation
+     * @returns {Promise<{ deletedCount: number }>} Result with count of deleted documents
      */
     deleteMany(query_1) {
         return __awaiter(this, arguments, void 0, function* (query, options = {}) {
@@ -264,7 +271,7 @@ class DBService {
      * @param {PipelineStage[]} pipeline Array of aggregation pipeline stages
      * @param {Object} [options={}] Additional aggregation options
      * @param {ClientSession} [options.session] Database session for transactions
-     * @returns {Promise<any[]>} Result of the aggregation pipeline
+     * @returns {Promise<unknown[]>} Result of the aggregation pipeline
      */
     aggregate(pipeline_1) {
         return __awaiter(this, arguments, void 0, function* (pipeline, options = {}) {

@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HashService = void 0;
 const argon2_1 = __importDefault(require("argon2"));
+const logger_utils_1 = __importDefault(require("./logger.utils"));
 class HashService {
     /**
      * Generate a secure password hash
@@ -30,7 +31,10 @@ class HashService {
                 };
             }
             catch (error) {
-                console.error('Password hashing failed', error);
+                logger_utils_1.default.error('Password hashing failed', {
+                    error: error instanceof Error ? error.message : error,
+                    stack: error instanceof Error ? error.stack : undefined
+                });
                 throw new Error('Password hashing failed');
             }
         });
@@ -47,7 +51,10 @@ class HashService {
                 return yield argon2_1.default.verify(hashedPassword, plainPassword);
             }
             catch (error) {
-                console.error('Password verification failed', error);
+                logger_utils_1.default.error('Password verification failed', {
+                    error: error instanceof Error ? error.message : error,
+                    stack: error instanceof Error ? error.stack : undefined
+                });
                 return false;
             }
         });

@@ -41,7 +41,7 @@ class AuthMiddleware {
 
             // Validate and parse token
             const token = this.parseToken(tokenString);
-            const verificationResult: TokenVerificationResult = await token.verifyToken();
+            const verificationResult = await token.verifyToken() as unknown as TokenVerificationResult;
             const { data, iat, exp } = verificationResult;
 
             // Validate token contents

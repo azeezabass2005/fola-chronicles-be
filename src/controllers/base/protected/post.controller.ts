@@ -117,15 +117,16 @@ class PostController extends BaseController {
             }
             
             if (startDate || endDate) {
-                filters.createdAt = {};
+                const dateFilter: Record<string, Date> = {};
                 if (startDate) {
-                    filters.createdAt.$gte = new Date(startDate as string);
+                    dateFilter.$gte = new Date(startDate as string);
                 }
                 if (endDate) {
                     const end = new Date(endDate as string);
                     end.setHours(23, 59, 59, 999); // Include the entire end date
-                    filters.createdAt.$lte = end;
+                    dateFilter.$lte = end;
                 }
+                filters.createdAt = dateFilter;
             }
 
             let posts;

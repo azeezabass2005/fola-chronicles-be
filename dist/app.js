@@ -49,12 +49,10 @@ class App {
     setupMiddlewares() {
         // Security middlewares
         this.app.use((0, helmet_1.default)());
+        // Configure CORS from environment variables
+        const corsOrigins = this.getCorsOrigins();
         this.app.use((0, cors_1.default)({
-            origin: [
-                'http://localhost:3000',
-                'localhost:3000',
-                'http://10.59.254.41:3000',
-            ],
+            origin: corsOrigins,
             credentials: true,
             exposedHeaders: ['set-cookie']
         }));
@@ -156,6 +154,27 @@ class App {
                 } : reason
             });
         });
+    }
+    /**
+     * Get CORS origins from environment variables
+     * @private
+     * @returns {string[]} Array of allowed origins
+     */
+    getCorsOrigins() {
+        const corsOrigin = env_config_1.default.CORS_ORIGIN;
+        if (!corsOrigin || corsOrigin === '*') {
+            // In production, '*' should not be used for security
+            if (env_config_1.default.NODE_ENV === 'production') {
+                logger_utils_1.default.warn('CORS_ORIGIN is set to "*" in production - this is insecure');
+            }
+            // Return true to reflect the request origin (works with credentials: true)
+            return true;
+        }
+        // Support comma-separated origins
+        if (corsOrigin.includes(',')) {
+            return corsOrigin.split(',').map(origin => origin.trim()).filter(origin => origin.length > 0);
+        }
+        return corsOrigin;
     }
     /**
      * Start the application server

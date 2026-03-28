@@ -75,12 +75,25 @@ class Token {
         expiresIn: '168h'
     }) {
         const { type = interface_1.TokenType.ACCESS, expiresIn = '1h' } = options;
-        const payload = {
-            userId: user === null || user === void 0 ? void 0 : user._id,
-            email: user === null || user === void 0 ? void 0 : user.email,
-            role: user === null || user === void 0 ? void 0 : user.role,
-            username: user === null || user === void 0 ? void 0 : user.username,
-        };
+        let payload;
+        if (type === interface_1.TokenType.REFRESH) {
+            // For refresh tokens, include tokenId in the payload
+            payload = {
+                userId: user === null || user === void 0 ? void 0 : user._id,
+                email: user === null || user === void 0 ? void 0 : user.email,
+                role: user === null || user === void 0 ? void 0 : user.role,
+                username: user === null || user === void 0 ? void 0 : user.username,
+                tokenId: TokenUtils.generateRefreshTokenId()
+            };
+        }
+        else {
+            payload = {
+                userId: user === null || user === void 0 ? void 0 : user._id,
+                email: user === null || user === void 0 ? void 0 : user.email,
+                role: user === null || user === void 0 ? void 0 : user.role,
+                username: user === null || user === void 0 ? void 0 : user.username,
+            };
+        }
         return jsonwebtoken_1.default.sign({
             data: payload,
             type

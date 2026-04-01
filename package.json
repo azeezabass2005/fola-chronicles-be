@@ -4,7 +4,7 @@
   "description": "This is my safe space where I share new things I learnt, document my journey and I get to express myself without fear of criticism",
   "main": "dist/index.js",
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "scripts": {
     "test": "jest",

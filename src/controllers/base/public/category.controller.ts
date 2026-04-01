@@ -25,8 +25,8 @@ class CategoryController extends BaseController {
      * @protected
      */
     protected setupRoutes(): void {
-        // Gets category route (public)
         this.router.get("/", this.getCategories.bind(this));
+        this.router.post("/", this.createCategory.bind(this));
     }
 
     /**

@@ -4,7 +4,8 @@ export const MODEL_NAME = {
     REFRESH_TOKEN: "RefreshToken",
     TAG: "Tag",
     CATEGORY: "Category",
-    SUBSCRIPTION: "Subscription"
+    SUBSCRIPTION: "Subscription",
+    POST_VIEW: "PostView"
 }
 
 export const ROLE_MAP = {

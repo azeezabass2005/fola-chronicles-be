@@ -1,6 +1,8 @@
+import crypto from "crypto";
 import DBService from "../utils/db.utils";
 import { IPost } from "../models/interface";
 import Post from "../models/post.model";
+import PostView from "../models/post-view.model";
 import { HydratedDocument, PipelineStage } from "mongoose";
 import errorResponseMessage from "../common/messages/error-response-message";
 import TagService from "./tag.service";
@@ -179,10 +181,23 @@ class PostService extends DBService<IPost> {
   }
 
   /**
-   * Increment view count for a post
+   * Record a unique view for a post (one view per visitor per 24 hours)
    */
-  public async incrementViewCount(postId: string): Promise<void> {
-    await this.updateById(postId, { $inc: { viewCount: 1 } } as any);
+  public async recordView(postId: string, ip: string, userAgent: string): Promise<boolean> {
+    const viewerHash = crypto
+      .createHash("sha256")
+      .update(`${ip}:${userAgent}`)
+      .digest("hex");
+
+    try {
+      await PostView.create({ postId, viewerHash });
+      await this.updateById(postId, { $inc: { viewCount: 1 } } as any);
+      return true;
+    } catch (err: any) {
+      // Duplicate key error = already viewed within 24h
+      if (err.code === 11000) return false;
+      throw err;
+    }
   }
 
   /**

@@ -165,10 +165,11 @@ class PostController extends BaseController {
         throw errorResponseMessage.resourceNotFound("Post");
       }
 
-      // Increment view count asynchronously (don't wait for it)
-      this.postService.incrementViewCount((post._id as string).toString()).catch((error) => {
-        // Log error but don't fail the request
-        this.logger?.error('Failed to increment view count:', { error, postId: post._id });
+      // Record unique view (one per visitor per 24h)
+      const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+      const userAgent = req.headers['user-agent'] || 'unknown';
+      this.postService.recordView((post._id as string).toString(), ip, userAgent).catch((error) => {
+        this.logger?.error('Failed to record view:', { error, postId: post._id });
       });
 
       const relatedPosts = await this.postService.getRelatedPosts(post, {

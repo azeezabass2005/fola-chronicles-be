@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "This is my safe space where I share new things I learnt, document my journey and I get to express myself without fear of criticism",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",

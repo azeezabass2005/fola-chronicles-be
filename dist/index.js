@@ -35,12 +35,12 @@ process.on('unhandledRejection', (reason, promise) => {
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const server = new app_1.default();
-        server.start();
+        yield server.start();
     }
     catch (error) {
-        logger_utils_1.default.error('Failed to start server', {
-            error: error instanceof Error ? error.message : error
-        });
+        const message = error instanceof Error ? error.message : error;
+        logger_utils_1.default.error('Failed to start server', { error: message });
+        console.error('FATAL: Server failed to start:', message);
         process.exit(1);
     }
 });

@@ -29,10 +29,8 @@ class App {
         this.app = express();
         this.dbService = DatabaseService.getInstance();
         this.setupMiddlewares();
-        this.setupDatabase().then(() => {});
         this.setupRoutes();
         this.setupErrorHandling();
-
     }
 
     /**
@@ -209,7 +207,8 @@ class App {
      * Start the application server
      * @public
      */
-    public start(): void {
+    public async start(): Promise<void> {
+        await this.setupDatabase();
         this.app.listen(config.PORT, () => {
             logger.info(`Server started`, {
                 port: config.PORT,

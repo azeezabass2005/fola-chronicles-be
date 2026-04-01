@@ -16,10 +16,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const winston_1 = __importDefault(require("winston"));
 const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const winston_daily_rotate_file_1 = __importDefault(require("winston-daily-rotate-file"));
-/**
- * Custom log levels with associated severity
- */
 const logLevels = {
     error: 0,
     warn: 1,
@@ -27,10 +25,6 @@ const logLevels = {
     http: 3,
     debug: 4,
 };
-/**
- * Color mapping for different log levels
- * @type {Object.<string, string>}
- */
 const logColors = {
     error: 'red',
     warn: 'yellow',
@@ -38,10 +32,6 @@ const logColors = {
     http: 'magenta',
     debug: 'blue',
 };
-/**
- * Creates a custom log format for consistent logging
- * @type {winston.Logform.Format}
- */
 const logFormat = winston_1.default.format.combine(winston_1.default.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), winston_1.default.format.errors({ stack: true }), winston_1.default.format.splat(), winston_1.default.format.printf((_a) => {
     var { timestamp, level, message } = _a, metadata = __rest(_a, ["timestamp", "level", "message"]);
     let msg = `${timestamp} [${level}]: ${message} `;
@@ -50,72 +40,53 @@ const logFormat = winston_1.default.format.combine(winston_1.default.format.time
         : '';
     return msg + metaString;
 }));
-/**
- * Console transport for logging
- * @type {winston.transports.ConsoleTransportInstance}
- */
 const consoleTransport = new winston_1.default.transports.Console({
     format: winston_1.default.format.combine(winston_1.default.format.colorize({ all: true }), logFormat),
     level: 'debug'
 });
-/**
- * Error log file transport with daily rotation
- * @type {DailyRotateFile}
- */
-const errorFileTransport = new winston_daily_rotate_file_1.default({
-    filename: path_1.default.join(process.cwd(), 'logs', 'error-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    level: 'error',
-    maxSize: '20m',
-    maxFiles: '14d'
-});
-/**
- * HTTP log file transport with daily rotation
- * @type {DailyRotateFile}
- */
-const httpFileTransport = new winston_daily_rotate_file_1.default({
-    filename: path_1.default.join(process.cwd(), 'logs', 'http-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    level: 'http',
-    maxSize: '20m',
-    maxFiles: '14d'
-});
-/**
- * Combined log file transport with daily rotation
- * @type {DailyRotateFile}
- */
-const combinedFileTransport = new winston_daily_rotate_file_1.default({
-    filename: path_1.default.join(process.cwd(), 'logs', 'combined-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    level: 'info',
-    maxSize: '20m',
-    maxFiles: '30d'
-});
-/**
- * Create a comprehensive logger with multiple transports
- * @type {winston.Logger}
- */
+// Only add file transports if the logs directory is writable
+const getFileTransports = () => {
+    const logsDir = path_1.default.join(process.cwd(), 'logs');
+    try {
+        if (!fs_1.default.existsSync(logsDir)) {
+            fs_1.default.mkdirSync(logsDir, { recursive: true });
+        }
+        // Test write access
+        fs_1.default.accessSync(logsDir, fs_1.default.constants.W_OK);
+    }
+    catch (_a) {
+        console.warn('Logger: logs/ directory is not writable, using console-only logging');
+        return [];
+    }
+    return [
+        new winston_daily_rotate_file_1.default({
+            filename: path_1.default.join(logsDir, 'error-%DATE%.log'),
+            datePattern: 'YYYY-MM-DD',
+            level: 'error',
+            maxSize: '20m',
+            maxFiles: '14d'
+        }),
+        new winston_daily_rotate_file_1.default({
+            filename: path_1.default.join(logsDir, 'http-%DATE%.log'),
+            datePattern: 'YYYY-MM-DD',
+            level: 'http',
+            maxSize: '20m',
+            maxFiles: '14d'
+        }),
+        new winston_daily_rotate_file_1.default({
+            filename: path_1.default.join(logsDir, 'combined-%DATE%.log'),
+            datePattern: 'YYYY-MM-DD',
+            level: 'info',
+            maxSize: '20m',
+            maxFiles: '30d'
+        }),
+    ];
+};
 const logger = winston_1.default.createLogger({
     levels: logLevels,
     format: logFormat,
-    transports: [
-        consoleTransport,
-        errorFileTransport,
-        httpFileTransport,
-        combinedFileTransport
-    ],
-    exceptionHandlers: [
-        new winston_1.default.transports.File({
-            filename: path_1.default.join(process.cwd(), 'logs', 'exceptions.log')
-        })
-    ],
-    rejectionHandlers: [
-        new winston_1.default.transports.File({
-            filename: path_1.default.join(process.cwd(), 'logs', 'rejections.log')
-        })
-    ],
+    transports: [consoleTransport, ...getFileTransports()],
     exitOnError: false
 });
-// Add colors to Winston
 winston_1.default.addColors(logColors);
 exports.default = logger;

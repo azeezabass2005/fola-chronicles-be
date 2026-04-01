@@ -48,9 +48,9 @@ class DatabaseService {
                 uri: config.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@') // Hide credentials in logs
             });
         } catch (error) {
-            logger.error('MongoDB connection error', {
-                error: error instanceof Error ? error.message : error
-            });
+            const message = error instanceof Error ? error.message : error;
+            logger.error('MongoDB connection error', { error: message });
+            console.error('FATAL: MongoDB connection failed:', message);
             process.exit(1);
         }
     }

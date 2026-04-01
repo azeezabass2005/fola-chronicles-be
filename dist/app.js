@@ -38,7 +38,6 @@ class App {
         this.app = (0, express_1.default)();
         this.dbService = db_config_1.default.getInstance();
         this.setupMiddlewares();
-        this.setupDatabase().then(() => { });
         this.setupRoutes();
         this.setupErrorHandling();
     }
@@ -198,11 +197,14 @@ class App {
      * @public
      */
     start() {
-        this.app.listen(env_config_1.default.PORT, () => {
-            logger_utils_1.default.info(`Server started`, {
-                port: env_config_1.default.PORT,
-                environment: env_config_1.default.NODE_ENV,
-                nodeVersion: process.version
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.setupDatabase();
+            this.app.listen(env_config_1.default.PORT, () => {
+                logger_utils_1.default.info(`Server started`, {
+                    port: env_config_1.default.PORT,
+                    environment: env_config_1.default.NODE_ENV,
+                    nodeVersion: process.version
+                });
             });
         });
     }

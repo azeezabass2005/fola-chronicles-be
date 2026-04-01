@@ -28,11 +28,11 @@ process.on('unhandledRejection', (reason, promise) => {
 const startServer = async () => {
     try {
         const server = new App();
-        server.start();
+        await server.start();
     } catch (error) {
-        logger.error('Failed to start server', {
-            error: error instanceof Error ? error.message : error
-        });
+        const message = error instanceof Error ? error.message : error;
+        logger.error('Failed to start server', { error: message });
+        console.error('FATAL: Server failed to start:', message);
         process.exit(1);
     }
 }

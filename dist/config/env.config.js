@@ -39,7 +39,9 @@ const validateRequiredVars = (env) => {
             }
         }
         if (missing.length > 0) {
-            throw new Error(`Missing required environment variables for production: ${missing.join(', ')}\n` +
+            const msg = `Missing required environment variables for production: ${missing.join(', ')}`;
+            console.error('FATAL:', msg);
+            throw new Error(`${msg}\n` +
                 `Please check your .env file and ensure all required variables are set.\n` +
                 `See .env.example for reference.`);
         }

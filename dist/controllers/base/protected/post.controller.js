@@ -56,6 +56,7 @@ class PostController extends base_controller_1.default {
     setupRoutes() {
         this.router.post("/", validators_1.validatePostCreate, this.createPost.bind(this));
         this.router.get("/", this.getPosts.bind(this));
+        this.router.get("/by-slug/:slug", this.getPostBySlug.bind(this));
         this.router.get("/:id", this.getPostById.bind(this));
         this.router.patch("/:id", this.updatePost.bind(this));
         this.router.delete("/:id", this.deletePost.bind(this));
@@ -151,6 +152,24 @@ class PostController extends base_controller_1.default {
         });
     }
     /**
+     * Retrieves a single post by slug
+     * @private
+     */
+    getPostBySlug(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const post = yield this.postService.findOne({ slug: req.params.slug }, { populate: ['user', 'tags', 'category'] });
+                if (!post) {
+                    throw error_response_message_1.default.resourceNotFound('Post');
+                }
+                this.sendSuccess(res, { post });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    /**
      * Retrieves a single post by ID
      * @private
      */
@@ -158,7 +177,7 @@ class PostController extends base_controller_1.default {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const post = yield this.postService.findById(req.params.id, {
-                    populate: ['user']
+                    populate: ['user', 'tags', 'category']
                 });
                 if (!post) {
                     throw error_response_message_1.default.resourceNotFound('Post');

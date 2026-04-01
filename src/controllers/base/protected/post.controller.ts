@@ -39,6 +39,7 @@ class PostController extends BaseController {
     protected setupRoutes(): void {
         this.router.post("/", validatePostCreate, this.createPost.bind(this));
         this.router.get("/", this.getPosts.bind(this));
+        this.router.get("/by-slug/:slug", this.getPostBySlug.bind(this));
         this.router.get("/:id", this.getPostById.bind(this));
         this.router.patch("/:id", this.updatePost.bind(this));
         this.router.delete("/:id", this.deletePost.bind(this));
@@ -158,13 +159,34 @@ class PostController extends BaseController {
     }
 
     /**
+     * Retrieves a single post by slug
+     * @private
+     */
+    private async getPostBySlug(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const post = await this.postService.findOne(
+                { slug: req.params.slug },
+                { populate: ['user', 'tags', 'category'] }
+            );
+
+            if (!post) {
+                throw errorResponseMessage.resourceNotFound('Post');
+            }
+
+            this.sendSuccess(res, { post });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
      * Retrieves a single post by ID
      * @private
      */
     private async getPostById(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const post = await this.postService.findById(req.params.id, {
-                populate: ['user']
+                populate: ['user', 'tags', 'category']
             });
 
             if (!post) {

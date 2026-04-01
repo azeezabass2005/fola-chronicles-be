@@ -163,7 +163,7 @@ class SubscriptionController extends BaseController {
                 res.redirect(`${config.CORS_ORIGIN}/subscription/confirmed`);
             } else {
                 this.sendSuccess(res, {
-                    message: "Subscription confirmed successfully! Welcome to Fola's Safe Space newsletter!",
+                    message: "Subscription confirmed successfully! Welcome to Fola's Chronicles newsletter!",
                     email: subscription.email
                 });
             }

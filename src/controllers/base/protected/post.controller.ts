@@ -7,7 +7,7 @@ import TagService from "../../../services/tag.service";
 import CategoryService from "../../../services/category.service";
 import SubscriptionNotificationUtils from "../../../utils/subscription-notification.utils";
 import { PUBLICATION_STATUS } from "../../../common/constant";
-import { sanitizeContent, sanitizeInput } from "../../../utils/sanitize.utils";
+import { sanitizeInput } from "../../../utils/sanitize.utils";
 
 /**
  * Controller handling post-related operations
@@ -231,7 +231,7 @@ class PostController extends BaseController {
                 sanitizedUpdateData.description = sanitizeInput(postData.description);
             }
             if (postData.content !== undefined) {
-                sanitizedUpdateData.content = sanitizeContent(postData.content);
+                sanitizedUpdateData.content = postData.content;
             }
             if (postData.featuredImage !== undefined) {
                 sanitizedUpdateData.featuredImage = sanitizeInput(postData.featuredImage);

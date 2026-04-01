@@ -59,7 +59,7 @@ class PostController extends BaseController {
                 ...postData,
                 title: sanitizeInput(postData.title || ''),
                 description: sanitizeInput(postData.description || ''),
-                content: sanitizeContent(postData.content || ''),
+                content: postData.content || '',
             };
 
             const tagDocs = await this.tagService.findOrCreateTags(tags);

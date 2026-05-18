@@ -5,7 +5,8 @@ export const MODEL_NAME = {
     TAG: "Tag",
     CATEGORY: "Category",
     SUBSCRIPTION: "Subscription",
-    POST_VIEW: "PostView"
+    POST_VIEW: "PostView",
+    POST_LIKE: "PostLike"
 }
 
 export const ROLE_MAP = {

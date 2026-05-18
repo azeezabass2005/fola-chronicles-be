@@ -31,6 +31,18 @@ class PostController extends BaseController {
   protected setupRoutes(): void {
     this.router.get("/", this.getPosts.bind(this));
     this.router.get("/:slug", this.getPostBySlug.bind(this));
+    this.router.get("/:slug/liked", this.getLiked.bind(this));
+    this.router.post("/:slug/like", this.toggleLike.bind(this));
+  }
+
+  /**
+   * Extracts the visitor's IP and user-agent from the request,
+   * matching the same scheme used for view dedupe.
+   */
+  private getVisitorFingerprint(req: Request): { ip: string; userAgent: string } {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    return { ip, userAgent };
   }
 
   /**
@@ -166,8 +178,7 @@ class PostController extends BaseController {
       }
 
       // Record unique view (one per visitor per 24h)
-      const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
-      const userAgent = req.headers['user-agent'] || 'unknown';
+      const { ip, userAgent } = this.getVisitorFingerprint(req);
       this.postService.recordView((post._id as string).toString(), ip, userAgent).catch((error) => {
         this.logger?.error('Failed to record view:', { error, postId: post._id });
       });
@@ -178,6 +189,73 @@ class PostController extends BaseController {
       });
       res.set("Cache-Control", "public, s-maxage=120, stale-while-revalidate=60");
       this.sendSuccess(res, { post, relatedPosts });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Returns whether the current visitor has liked the post.
+   * Not cached — response is per-visitor.
+   * @private
+   */
+  private async getLiked(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const post = await this.postService.findOne(
+        { slug: req.params.slug },
+        { select: ["_id"] }
+      );
+
+      if (!post) {
+        throw errorResponseMessage.resourceNotFound("Post");
+      }
+
+      const { ip, userAgent } = this.getVisitorFingerprint(req);
+      const liked = await this.postService.hasLiked(
+        (post._id as string).toString(),
+        ip,
+        userAgent
+      );
+
+      res.set("Cache-Control", "no-store");
+      this.sendSuccess(res, { liked });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Toggle the like state for the current visitor.
+   * @private
+   */
+  private async toggleLike(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const post = await this.postService.findOne(
+        { slug: req.params.slug },
+        { select: ["_id"] }
+      );
+
+      if (!post) {
+        throw errorResponseMessage.resourceNotFound("Post");
+      }
+
+      const { ip, userAgent } = this.getVisitorFingerprint(req);
+      const result = await this.postService.toggleLike(
+        (post._id as string).toString(),
+        ip,
+        userAgent
+      );
+
+      res.set("Cache-Control", "no-store");
+      this.sendSuccess(res, result);
     } catch (error) {
       next(error);
     }

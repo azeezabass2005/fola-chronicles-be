@@ -12,8 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const crypto_1 = __importDefault(require("crypto"));
 const db_utils_1 = __importDefault(require("../utils/db.utils"));
 const post_model_1 = __importDefault(require("../models/post.model"));
+const post_view_model_1 = __importDefault(require("../models/post-view.model"));
 const error_response_message_1 = __importDefault(require("../common/messages/error-response-message"));
 const tag_service_1 = __importDefault(require("./tag.service"));
 const category_service_1 = __importDefault(require("./category.service"));
@@ -149,11 +151,25 @@ class PostService extends db_utils_1.default {
         });
     }
     /**
-     * Increment view count for a post
+     * Record a unique view for a post (one view per visitor per 24 hours)
      */
-    incrementViewCount(postId) {
+    recordView(postId, ip, userAgent) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.updateById(postId, { $inc: { viewCount: 1 } });
+            const viewerHash = crypto_1.default
+                .createHash("sha256")
+                .update(`${ip}:${userAgent}`)
+                .digest("hex");
+            try {
+                yield post_view_model_1.default.create({ postId, viewerHash });
+                yield this.updateById(postId, { $inc: { viewCount: 1 } });
+                return true;
+            }
+            catch (err) {
+                // Duplicate key error = already viewed within 24h
+                if (err.code === 11000)
+                    return false;
+                throw err;
+            }
         });
     }
     /**

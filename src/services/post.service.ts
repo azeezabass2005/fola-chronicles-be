@@ -3,6 +3,7 @@ import DBService from "../utils/db.utils";
 import { IPost } from "../models/interface";
 import Post from "../models/post.model";
 import PostView from "../models/post-view.model";
+import PostLike from "../models/post-like.model";
 import { HydratedDocument, PipelineStage } from "mongoose";
 import errorResponseMessage from "../common/messages/error-response-message";
 import TagService from "./tag.service";
@@ -181,13 +182,20 @@ class PostService extends DBService<IPost> {
   }
 
   /**
-   * Record a unique view for a post (one view per visitor per 24 hours)
+   * Hash a visitor's identifying details into a stable, anonymous fingerprint.
    */
-  public async recordView(postId: string, ip: string, userAgent: string): Promise<boolean> {
-    const viewerHash = crypto
+  private getVisitorHash(ip: string, userAgent: string): string {
+    return crypto
       .createHash("sha256")
       .update(`${ip}:${userAgent}`)
       .digest("hex");
+  }
+
+  /**
+   * Record a unique view for a post (one view per visitor per 24 hours)
+   */
+  public async recordView(postId: string, ip: string, userAgent: string): Promise<boolean> {
+    const viewerHash = this.getVisitorHash(ip, userAgent);
 
     try {
       await PostView.create({ postId, viewerHash });
@@ -201,17 +209,37 @@ class PostService extends DBService<IPost> {
   }
 
   /**
-   * Increment like count for a post
+   * Toggle a like for a post by an anonymous visitor.
+   * Returns the new liked state and the resulting likeCount.
    */
-  public async updateLikeCount(
+  public async toggleLike(
     postId: string,
-    likeUpdateType = "increment"
-  ): Promise<void> {
-    if (likeUpdateType === "decrement") {
-      await this.updateById(postId, { $inc: { likeCount: -1 } } as any);
-    } else {
-      await this.updateById(postId, { $inc: { likeCount: 1 } } as any);
+    ip: string,
+    userAgent: string
+  ): Promise<{ liked: boolean; likeCount: number }> {
+    const likerHash = this.getVisitorHash(ip, userAgent);
+
+    try {
+      await PostLike.create({ postId, likerHash });
+      const post = await this.updateById(postId, { $inc: { likeCount: 1 } } as any);
+      return { liked: true, likeCount: post?.likeCount ?? 0 };
+    } catch (err: any) {
+      if (err.code !== 11000) throw err;
+
+      // Already liked → unlike
+      await PostLike.deleteOne({ postId, likerHash });
+      const post = await this.updateById(postId, { $inc: { likeCount: -1 } } as any);
+      return { liked: false, likeCount: Math.max(post?.likeCount ?? 0, 0) };
     }
+  }
+
+  /**
+   * Check whether the given visitor has liked the post.
+   */
+  public async hasLiked(postId: string, ip: string, userAgent: string): Promise<boolean> {
+    const likerHash = this.getVisitorHash(ip, userAgent);
+    const existing = await PostLike.exists({ postId, likerHash });
+    return Boolean(existing);
   }
 
   /**

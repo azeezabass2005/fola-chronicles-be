@@ -71,7 +71,7 @@ class PostController extends base_controller_1.default {
                 const user = res.locals.user;
                 const _a = req.body, { category, tags } = _a, postData = __rest(_a, ["category", "tags"]);
                 // Sanitize user input to prevent XSS attacks
-                const sanitizedPostData = Object.assign(Object.assign({}, postData), { title: (0, sanitize_utils_1.sanitizeInput)(postData.title || ''), description: (0, sanitize_utils_1.sanitizeInput)(postData.description || ''), content: (0, sanitize_utils_1.sanitizeContent)(postData.content || '') });
+                const sanitizedPostData = Object.assign(Object.assign({}, postData), { title: (0, sanitize_utils_1.sanitizeInput)(postData.title || ''), description: (0, sanitize_utils_1.sanitizeInput)(postData.description || ''), content: postData.content || '' });
                 const tagDocs = yield this.tagService.findOrCreateTags(tags);
                 const categoryDoc = yield this.categoryService.findOrCreateCategory(category);
                 const post = yield this.postService.save(Object.assign(Object.assign({}, sanitizedPostData), { tags: tagDocs.map(tag => tag._id), category: categoryDoc._id, user: user === null || user === void 0 ? void 0 : user._id }));
@@ -219,7 +219,7 @@ class PostController extends base_controller_1.default {
                     sanitizedUpdateData.description = (0, sanitize_utils_1.sanitizeInput)(postData.description);
                 }
                 if (postData.content !== undefined) {
-                    sanitizedUpdateData.content = (0, sanitize_utils_1.sanitizeContent)(postData.content);
+                    sanitizedUpdateData.content = postData.content;
                 }
                 if (postData.featuredImage !== undefined) {
                     sanitizedUpdateData.featuredImage = (0, sanitize_utils_1.sanitizeInput)(postData.featuredImage);

@@ -1,2 +1,0 @@
-"use strict";
-// All the types for the project will be here

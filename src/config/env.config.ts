@@ -47,6 +47,10 @@ interface EnvConfig {
     MAIL_PASSWORD: string;
     /** Mail from address */
     MAIL_FROM: string;
+    /** Email provider driver: 'smtp' (default) or 'resend' */
+    MAIL_PROVIDER: string;
+    /** Resend API key (required when MAIL_PROVIDER is 'resend') */
+    RESEND_API_KEY: string;
 }
 
 /**
@@ -65,7 +69,8 @@ const REQUIRED_PROD_VARS = [
 const SENSITIVE_VARS = [
     'MONGODB_URI',
     'JWT_SECRET',
-    'MAIL_PASSWORD'
+    'MAIL_PASSWORD',
+    'RESEND_API_KEY'
 ] as const;
 
 /**
@@ -198,8 +203,18 @@ const loadEnvConfig = (): EnvConfig => {
         MAIL_SECURE: process.env.MAIL_SECURE || 'false',
         MAIL_USERNAME: process.env.MAIL_USERNAME || '',
         MAIL_PASSWORD: getEnvVar('MAIL_PASSWORD', '', true),
-        MAIL_FROM: process.env.MAIL_FROM || 'noreply@fola-safe-space.com'
+        MAIL_FROM: process.env.MAIL_FROM || 'noreply@fola-safe-space.com',
+        MAIL_PROVIDER: (process.env.MAIL_PROVIDER || 'smtp').toLowerCase(),
+        RESEND_API_KEY: process.env.RESEND_API_KEY || ''
     };
+
+    // When Resend is the selected provider, its API key is mandatory outside development
+    if (config.MAIL_PROVIDER === 'resend' && !isDevelopment && config.RESEND_API_KEY.trim() === '') {
+        throw new Error(
+            'Missing required environment variable: RESEND_API_KEY\n' +
+            `RESEND_API_KEY is required when MAIL_PROVIDER is 'resend' in ${env} environment.`
+        );
+    }
 
     // Log configuration on startup (without sensitive data)
     logger.info('Environment configuration loaded', {

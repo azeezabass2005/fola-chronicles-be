@@ -1,6 +1,6 @@
-import nodemailer, { Transporter, SendMailOptions } from 'nodemailer';
 import config from '../config/env.config';
 import logger from './logger.utils';
+import { EmailProvider, ProviderMessage, createEmailProvider } from './email-providers';
 
 /**
  * Represents the structure of email template data
@@ -56,16 +56,11 @@ interface EmailTheme {
  * with custom templating and theme support for Fola's Chronicles
  */
 class EmailService {
-    /** Nodemailer transporter instance */
-    private readonly transporter: Transporter;
+    /** Transport driver (SMTP or Resend), selected via MAIL_PROVIDER */
+    private readonly provider: EmailProvider;
 
     /** Email configuration from environment variables */
     private readonly emailConfig: {
-        host: string;
-        port: number;
-        secure: boolean;
-        username: string;
-        password: string;
         from: string;
     };
 
@@ -80,11 +75,6 @@ class EmailService {
      */
     constructor() {
         this.emailConfig = {
-            host: config.MAIL_HOST || '',
-            port: parseInt(config.MAIL_PORT || '587', 10),
-            secure: config.MAIL_SECURE === 'true',
-            username: config.MAIL_USERNAME || '',
-            password: config.MAIL_PASSWORD || '',
             from: config.MAIL_FROM || 'noreply@folachronicles.com',
         };
 
@@ -101,25 +91,9 @@ class EmailService {
             textMuted: '#6b7280',
         };
 
-        this.transporter = this.createTransporter();
+        this.provider = createEmailProvider();
         this.templates = new Map();
         this.registerTemplates();
-    }
-
-    /**
-     * Creates and configures the nodemailer transporter
-     * @returns {Transporter} Configured nodemailer transporter
-     */
-    private createTransporter(): Transporter {
-        return nodemailer.createTransport({
-            host: this.emailConfig.host,
-            port: this.emailConfig.port,
-            secure: this.emailConfig.secure,
-            auth: {
-                user: this.emailConfig.username,
-                pass: this.emailConfig.password,
-            },
-        });
     }
 
     /**
@@ -443,18 +417,18 @@ class EmailService {
                 emailHtml = this.replacePlaceholders(emailHtml, data);
             }
 
-            const mailOptions: SendMailOptions = {
+            const message: ProviderMessage = {
                 from: this.emailConfig.from,
-                to: Array.isArray(to) ? to.join(', ') : to,
+                to,
                 subject,
                 html: emailHtml,
                 text: emailText,
-                cc: cc ? (Array.isArray(cc) ? cc.join(', ') : cc) : undefined,
-                bcc: bcc ? (Array.isArray(bcc) ? bcc.join(', ') : bcc) : undefined,
+                cc,
+                bcc,
                 attachments,
             };
 
-            return await this.transporter.sendMail(mailOptions);
+            return await this.provider.sendRaw(message);
         }, 'Failed to send email');
     }
 
@@ -548,7 +522,7 @@ class EmailService {
      */
     public async verifyConnection(): Promise<boolean> {
         return this.executeWithErrorHandling(async () => {
-            await this.transporter.verify();
+            await this.provider.verify();
             return true;
         }, 'Email service verification failed');
     }

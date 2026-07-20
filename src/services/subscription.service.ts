@@ -4,6 +4,22 @@ import Subscription from '../models/subscription.model';
 import crypto from 'crypto';
 
 /**
+ * Outcome of a subscribe attempt, so callers can respond appropriately:
+ * - 'created': brand-new subscription, confirmation email should be sent
+ * - 'resent': existing but unconfirmed, a fresh confirmation email should be sent
+ * - 'already_confirmed': already an active, confirmed subscriber; no email needed
+ */
+export type SubscriptionStatus = 'created' | 'resent' | 'already_confirmed';
+
+/**
+ * Result of createSubscription, pairing the record with what happened to it
+ */
+export interface SubscriptionResult {
+    subscription: ISubscription;
+    status: SubscriptionStatus;
+}
+
+/**
  * Service class for Subscription-related database operations
  *
  * @description Extends the generic DBService with Subscription-specific configurations
@@ -20,20 +36,30 @@ class SubscriptionService extends DBService<ISubscription> {
     }
 
     /**
-     * Creates a new subscription with confirmation token
+     * Creates a subscription, or gracefully handles an email that already exists.
      * @param {string} email Email address to subscribe
-     * @returns {Promise<ISubscription>} Created subscription
+     * @returns {Promise<SubscriptionResult>} The subscription and what happened to it
      */
-    async createSubscription(email: string): Promise<ISubscription> {
-        // Check if subscription already exists
-        const existing = await this.findOne({ email: email.toLowerCase() });
-        
+    async createSubscription(email: string): Promise<SubscriptionResult> {
+        const normalizedEmail = email.toLowerCase();
+        const existing = await this.findOne({ email: normalizedEmail });
+
         if (existing) {
-            // If already confirmed and active, return existing
-            if (existing.isConfirmed && existing.isActive) {
-                return existing;
+            // Already confirmed: reactivate if they'd previously unsubscribed,
+            // but never re-issue a confirmation — they're already verified.
+            if (existing.isConfirmed) {
+                if (!existing.isActive) {
+                    const reactivated = await this.updateById(existing._id as string, {
+                        isActive: true,
+                        subscribedAt: new Date(),
+                        unsubscribedAt: undefined,
+                    });
+                    return { subscription: reactivated!, status: 'already_confirmed' };
+                }
+                return { subscription: existing, status: 'already_confirmed' };
             }
-            // If exists but not confirmed, update with new token
+
+            // Exists but never confirmed: issue a fresh token and resend confirmation.
             const confirmationToken = this.generateConfirmationToken();
             const updated = await this.updateById(existing._id as string, {
                 confirmationToken,
@@ -41,18 +67,19 @@ class SubscriptionService extends DBService<ISubscription> {
                 subscribedAt: new Date(),
                 unsubscribedAt: undefined,
             });
-            return updated!;
+            return { subscription: updated!, status: 'resent' };
         }
 
-        // Create new subscription
+        // Brand-new subscription
         const confirmationToken = this.generateConfirmationToken();
-        return await this.save({
-            email: email.toLowerCase(),
+        const created = await this.save({
+            email: normalizedEmail,
             isActive: true,
             isConfirmed: false,
             confirmationToken,
             subscribedAt: new Date(),
         });
+        return { subscription: created, status: 'created' };
     }
 
     /**

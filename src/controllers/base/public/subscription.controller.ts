@@ -69,22 +69,23 @@ class SubscriptionController extends BaseController {
             }
 
             // Create or update subscription
-            const subscription = await this.subscriptionService.createSubscription(email);
+            const { subscription, status } = await this.subscriptionService.createSubscription(email);
 
-            // If already confirmed, return success without sending email
-            if (subscription.isConfirmed) {
+            // Already an active, confirmed subscriber — reassure them, no email needed
+            if (status === 'already_confirmed') {
                 this.sendSuccess(res, {
-                    message: "You are already subscribed to our newsletter!",
+                    message: "You're already subscribed to Fola's Chronicles. Thanks for being here!",
                     email: subscription.email
                 });
                 return;
             }
 
-            // Generate confirmation URL
+            // 'created' (new) or 'resent' (existing but unconfirmed): both need a
+            // confirmation email sent to the address so they can verify it.
             const confirmationUrl = `${config.CORS_ORIGIN}/subscription/confirm/${subscription.confirmationToken}`;
             const unsubscribeUrl = `${config.CORS_ORIGIN}/subscription/unsubscribe?email=${encodeURIComponent(subscription.email)}`;
 
-            // Send confirmation email
+            let emailSent = true;
             try {
                 await this.emailService.sendSubscriptionConfirmation(
                     subscription.email,
@@ -95,6 +96,7 @@ class SubscriptionController extends BaseController {
                 );
             } catch (emailError) {
                 // Log email error but don't fail the subscription
+                emailSent = false;
                 logger.error('Failed to send confirmation email', {
                     error: emailError instanceof Error ? emailError.message : String(emailError),
                     email: subscription.email,
@@ -102,8 +104,17 @@ class SubscriptionController extends BaseController {
                 });
             }
 
+            let message: string;
+            if (!emailSent) {
+                message = "We received your request but couldn't send the confirmation email just now. Please try again shortly.";
+            } else if (status === 'resent') {
+                message = "You've already signed up but haven't confirmed yet. We've re-sent your confirmation link — please check your email to confirm your subscription.";
+            } else {
+                message = "Subscription request received! Please check your email to confirm your subscription.";
+            }
+
             this.sendSuccess(res, {
-                message: "Subscription request received! Please check your email to confirm your subscription.",
+                message,
                 email: subscription.email
             }, 201);
         } catch (error) {

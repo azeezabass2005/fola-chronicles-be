@@ -120,20 +120,50 @@ class EmailService {
                 <div style="padding: 10px 0; border-bottom: 1px solid ${this.theme.border};">
                     <div style="display: inline-block; width: 24px; height: 24px; background-color: ${this.theme.accentColor}; opacity: 0.2; vertical-align: middle; margin-right: 10px;"></div>
                     <div style="display: inline-block; vertical-align: middle;">
-                        <p style="margin: 0; font-weight: 600; color: ${this.theme.textPrimary}; font-size: 13px; line-height: 1.4;">${att.filename}</p>
-                        <p style="margin: 2px 0 0 0; color: ${this.theme.textMuted}; font-size: 12px; line-height: 1.3;">${att.contentType || 'Attachment'}</p>
+                        <p class="e-primary" style="margin: 0; font-weight: 600; color: ${this.theme.textPrimary}; font-size: 13px; line-height: 1.4;">${att.filename}</p>
+                        <p class="e-muted" style="margin: 2px 0 0 0; color: ${this.theme.textMuted}; font-size: 12px; line-height: 1.3;">${att.contentType || 'Attachment'}</p>
                     </div>
                 </div>
             `).join('');
 
         return `
             <div style="margin: 24px 0 0 0; padding-top: 20px; border-top: 1px solid ${this.theme.border};">
-                <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: ${this.theme.textPrimary};">
+                <p class="e-primary" style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: ${this.theme.textPrimary};">
                     Attachments (${attachments.filter(att => !att.cid).length})
                 </p>
                 ${attachmentItems}
             </div>
         `;
+    }
+
+    /**
+     * Generates the <style> block that adapts the email to a light-themed
+     * client. The dark theme lives in inline styles (the default everywhere),
+     * and these rules override it ONLY in clients that honour
+     * prefers-color-scheme (Apple Mail, iOS Mail, Outlook for Mac). Gmail,
+     * Outlook Windows, etc. ignore the media query and keep the dark design.
+     *
+     * !important is required because these class rules must beat the inline
+     * styles they override.
+     * @returns {string} A <style> element
+     */
+    private generateThemeStyles(): string {
+        return `
+    <style>
+        :root { color-scheme: dark light; supported-color-schemes: dark light; }
+        @media (prefers-color-scheme: light) {
+            .e-body { background-color: #f4f4f2 !important; }
+            .e-container { background-color: #ffffff !important; }
+            .e-header { background-color: #ffffff !important; border-color: #e7e5e4 !important; }
+            .e-footer { background-color: #faf9f7 !important; border-color: #e7e5e4 !important; }
+            .e-heading { color: #7a5c30 !important; }
+            .e-primary { color: #1c1917 !important; }
+            .e-secondary { color: #57534e !important; }
+            .e-muted { color: #79716b !important; }
+            .e-link { color: #7a5c30 !important; }
+            .e-panel { background-color: #f4f4f2 !important; border-left-color: #b8945f !important; }
+        }
+    </style>`;
     }
 
     /**
@@ -152,17 +182,20 @@ class EmailService {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="color-scheme" content="dark light">
+    <meta name="supported-color-schemes" content="dark light">
     <title>Fola's Chronicles</title>
+    ${this.generateThemeStyles()}
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: ${this.theme.textPrimary}; background-color: ${this.theme.background};">
-    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: ${this.theme.background}; padding: 16px 0;">
+<body class="e-body" style="margin: 0; padding: 0; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: ${this.theme.textPrimary}; background-color: ${this.theme.background};">
+    <table class="e-body" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: ${this.theme.background}; padding: 16px 0;">
         <tr>
             <td align="center">
-                <table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; background-color: ${this.theme.surface};">
+                <table class="e-container" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; background-color: ${this.theme.surface};">
                     <!-- Header -->
                     <tr>
-                        <td style="background-color: ${this.theme.surface}; padding: 24px; border-bottom: 1px solid ${this.theme.border};">
-                            <h1 style="margin: 0; color: ${this.theme.accentColor}; font-size: 24px; font-weight: 600; letter-spacing: -0.3px; text-align: center;">
+                        <td class="e-header" style="background-color: ${this.theme.surface}; padding: 24px; border-bottom: 1px solid ${this.theme.border};">
+                            <h1 class="e-heading" style="margin: 0; color: ${this.theme.accentColor}; font-size: 24px; font-weight: 600; letter-spacing: -0.3px; text-align: center;">
                                 Fola's Chronicles
                             </h1>
                         </td>
@@ -170,7 +203,7 @@ class EmailService {
 
                     <!-- Content -->
                     <tr>
-                        <td style="padding: 32px 24px;">
+                        <td class="e-container" style="padding: 32px 24px; background-color: ${this.theme.surface};">
                             ${content}
                             ${attachmentsSection}
                         </td>
@@ -178,11 +211,11 @@ class EmailService {
 
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: ${this.theme.surfaceAlt}; padding: 24px; border-top: 1px solid ${this.theme.border};">
-                            <p style="margin: 0 0 8px 0; font-size: 12px; color: ${this.theme.textMuted}; line-height: 1.5; text-align: center;">
+                        <td class="e-footer" style="background-color: ${this.theme.surfaceAlt}; padding: 24px; border-top: 1px solid ${this.theme.border};">
+                            <p class="e-muted" style="margin: 0 0 8px 0; font-size: 12px; color: ${this.theme.textMuted}; line-height: 1.5; text-align: center;">
                                 &copy; ${new Date().getFullYear()} Fola's Chronicles. All rights reserved.
                             </p>
-                            <p style="margin: 0; font-size: 11px; color: ${this.theme.textMuted}; line-height: 1.4; text-align: center;">
+                            <p class="e-muted" style="margin: 0; font-size: 11px; color: ${this.theme.textMuted}; line-height: 1.4; text-align: center;">
                                 Tech insights, coding tips, and development chronicles
                             </p>
                         </td>
@@ -203,13 +236,13 @@ class EmailService {
      */
     private subscriptionConfirmationTemplate(data: EmailTemplateData): string {
         const content = `
-            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${this.theme.accentColor}; letter-spacing: -0.3px;">
+            <h2 class="e-heading" style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${this.theme.accentColor}; letter-spacing: -0.3px;">
                 Confirm Your Subscription
             </h2>
-            <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textPrimary};">
+            <p class="e-primary" style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textPrimary};">
                 Hi there,
             </p>
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textSecondary};">
+            <p class="e-secondary" style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textSecondary};">
                 Thank you for subscribing to Fola's Chronicles newsletter! I'm excited to have you join the community.
             </p>
             ${data.confirmationUrl ? `
@@ -219,16 +252,16 @@ class EmailService {
                 </a>
             </div>
             ` : ''}
-            <div style="background-color: ${this.theme.surfaceAlt}; border-left: 3px solid ${this.theme.accentColor}; padding: 14px 16px; margin: 20px 0;">
-                <p style="margin: 0 0 6px 0; font-weight: 600; font-size: 14px; color: ${this.theme.textPrimary};">What to expect?</p>
-                <p style="margin: 0; font-size: 14px; line-height: 1.5; color: ${this.theme.textSecondary};">
+            <div class="e-panel" style="background-color: ${this.theme.surfaceAlt}; border-left: 3px solid ${this.theme.accentColor}; padding: 14px 16px; margin: 20px 0;">
+                <p class="e-primary" style="margin: 0 0 6px 0; font-weight: 600; font-size: 14px; color: ${this.theme.textPrimary};">What to expect?</p>
+                <p class="e-secondary" style="margin: 0; font-size: 14px; line-height: 1.5; color: ${this.theme.textSecondary};">
                     You'll receive updates about the latest tech insights, interesting math, coding tips, my chronicles, and development best practices.
                 </p>
             </div>
-            <p style="margin: 20px 0 0 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textMuted};">
+            <p class="e-muted" style="margin: 20px 0 0 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textMuted};">
                 If you didn't subscribe to this newsletter, you can safely ignore this email.
             </p>
-            <p style="margin: 16px 0 0 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textPrimary};">
+            <p class="e-primary" style="margin: 16px 0 0 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textPrimary};">
                 Best regards,<br>
                 <strong>Fola</strong>
             </p>
@@ -243,17 +276,17 @@ class EmailService {
      */
     private subscriptionWelcomeTemplate(data: EmailTemplateData): string {
         const content = `
-            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${this.theme.accentColor}; letter-spacing: -0.3px;">
+            <h2 class="e-heading" style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${this.theme.accentColor}; letter-spacing: -0.3px;">
                 Welcome to Fola's Chronicles!
             </h2>
-            <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textPrimary};">
+            <p class="e-primary" style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textPrimary};">
                 Hi there,
             </p>
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textSecondary};">
+            <p class="e-secondary" style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textSecondary};">
                 Your subscription has been confirmed! You're now part of the community and will receive regular updates about:
             </p>
-            <div style="background-color: ${this.theme.surfaceAlt}; border-left: 3px solid ${this.theme.accentColor}; padding: 14px 16px; margin: 20px 0;">
-                <ul style="margin: 0; padding-left: 20px; color: ${this.theme.textSecondary};">
+            <div class="e-panel" style="background-color: ${this.theme.surfaceAlt}; border-left: 3px solid ${this.theme.accentColor}; padding: 14px 16px; margin: 20px 0;">
+                <ul class="e-secondary" style="margin: 0; padding-left: 20px; color: ${this.theme.textSecondary};">
                     <li style="margin-bottom: 8px; font-size: 14px; line-height: 1.5;">Latest tech insights and trends</li>
                     <li style="margin-bottom: 8px; font-size: 14px; line-height: 1.5;">Interesting math and algorithms</li>
                     <li style="margin-bottom: 8px; font-size: 14px; line-height: 1.5;">Coding tips and best practices</li>
@@ -261,11 +294,11 @@ class EmailService {
                 </ul>
             </div>
             ${data.unsubscribeUrl ? `
-            <p style="margin: 20px 0 12px 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textMuted};">
-                You can unsubscribe at any time by <a href="${data.unsubscribeUrl}" style="color: ${this.theme.accentColor}; text-decoration: none;">clicking here</a>.
+            <p class="e-muted" style="margin: 20px 0 12px 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textMuted};">
+                You can unsubscribe at any time by <a class="e-link" href="${data.unsubscribeUrl}" style="color: ${this.theme.accentColor}; text-decoration: none;">clicking here</a>.
             </p>
             ` : ''}
-            <p style="margin: 16px 0 0 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textPrimary};">
+            <p class="e-primary" style="margin: 16px 0 0 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textPrimary};">
                 Best regards,<br>
                 <strong>Fola</strong>
             </p>
@@ -280,18 +313,18 @@ class EmailService {
      */
     private newPostNotificationTemplate(data: EmailTemplateData): string {
         const content = `
-            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${this.theme.accentColor}; letter-spacing: -0.3px;">
+            <h2 class="e-heading" style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${this.theme.accentColor}; letter-spacing: -0.3px;">
                 New Post: ${data.title || 'Check this out!'}
             </h2>
-            <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textPrimary};">
+            <p class="e-primary" style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textPrimary};">
                 Hi there,
             </p>
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textSecondary};">
+            <p class="e-secondary" style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textSecondary};">
                 I just published a new post that I think you'll find interesting!
             </p>
             ${data.excerpt ? `
-            <div style="background-color: ${this.theme.surfaceAlt}; border-left: 3px solid ${this.theme.accentColor}; padding: 14px 16px; margin: 20px 0;">
-                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textSecondary}; font-style: italic;">
+            <div class="e-panel" style="background-color: ${this.theme.surfaceAlt}; border-left: 3px solid ${this.theme.accentColor}; padding: 14px 16px; margin: 20px 0;">
+                <p class="e-secondary" style="margin: 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textSecondary}; font-style: italic;">
                     "${data.excerpt}"
                 </p>
             </div>
@@ -304,11 +337,11 @@ class EmailService {
             </div>
             ` : ''}
             ${data.unsubscribeUrl ? `
-            <p style="margin: 20px 0 0 0; font-size: 12px; line-height: 1.6; color: ${this.theme.textMuted}; text-align: center;">
-                <a href="${data.unsubscribeUrl}" style="color: ${this.theme.textMuted}; text-decoration: underline;">Unsubscribe</a> from these notifications
+            <p class="e-muted" style="margin: 20px 0 0 0; font-size: 12px; line-height: 1.6; color: ${this.theme.textMuted}; text-align: center;">
+                <a class="e-muted" href="${data.unsubscribeUrl}" style="color: ${this.theme.textMuted}; text-decoration: underline;">Unsubscribe</a> from these notifications
             </p>
             ` : ''}
-            <p style="margin: 16px 0 0 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textPrimary};">
+            <p class="e-primary" style="margin: 16px 0 0 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textPrimary};">
                 Best regards,<br>
                 <strong>Fola</strong>
             </p>
@@ -323,13 +356,13 @@ class EmailService {
      */
     private notificationTemplate(data: EmailTemplateData): string {
         const content = `
-            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${this.theme.accentColor}; letter-spacing: -0.3px;">
+            <h2 class="e-heading" style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: ${this.theme.accentColor}; letter-spacing: -0.3px;">
                 ${data.title || 'Notification'}
             </h2>
-            <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textPrimary};">
+            <p class="e-primary" style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textPrimary};">
                 Hi there,
             </p>
-            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textSecondary};">
+            <p class="e-secondary" style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${this.theme.textSecondary};">
                 ${data.message || 'You have a new notification.'}
             </p>
             ${data.actionUrl ? `
@@ -340,13 +373,13 @@ class EmailService {
             </div>
             ` : ''}
             ${data.additionalInfo ? `
-            <div style="background-color: ${this.theme.surfaceAlt}; border-left: 3px solid ${this.theme.accentColor}; padding: 14px 16px; margin: 20px 0;">
-                <p style="margin: 0; font-size: 14px; line-height: 1.5; color: ${this.theme.textSecondary};">
+            <div class="e-panel" style="background-color: ${this.theme.surfaceAlt}; border-left: 3px solid ${this.theme.accentColor}; padding: 14px 16px; margin: 20px 0;">
+                <p class="e-secondary" style="margin: 0; font-size: 14px; line-height: 1.5; color: ${this.theme.textSecondary};">
                     ${data.additionalInfo}
                 </p>
             </div>
             ` : ''}
-            <p style="margin: 20px 0 0 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textPrimary};">
+            <p class="e-primary" style="margin: 20px 0 0 0; font-size: 14px; line-height: 1.6; color: ${this.theme.textPrimary};">
                 Best regards,<br>
                 <strong>Fola</strong>
             </p>

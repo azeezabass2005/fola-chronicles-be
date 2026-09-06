@@ -167,7 +167,10 @@ class PostController extends BaseController {
   ): Promise<void> {
     try {
       const post = await this.postService.findOne(
-        { slug: req.params.slug },
+        {
+          slug: req.params.slug,
+          publicationStatus: PUBLICATION_STATUS.PUBLISHED,
+        },
         {
           populate: ["user", "tags", "category"],
         }

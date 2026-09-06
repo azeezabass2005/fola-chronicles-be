@@ -2,6 +2,7 @@ import SubscriptionService from '../services/subscription.service';
 import EmailService from './email.utils';
 import config from '../config/env.config';
 import logger from './logger.utils';
+import { forEachRateLimited } from './rate-limit.utils';
 
 /**
  * Utility functions for sending notifications to subscribers
@@ -36,11 +37,12 @@ class SubscriptionNotificationUtils {
             let sent = 0;
             let failed = 0;
 
-            // Send emails to all subscribers
-            const emailPromises = subscribers.map(async (subscriber) => {
+            // Send emails to all subscribers, paced to stay under the email
+            // provider's per-second rate limit (Resend allows 10/s).
+            await forEachRateLimited(subscribers, async (subscriber) => {
                 try {
                     const unsubscribeUrl = `${config.CORS_ORIGIN}/subscription/unsubscribe?email=${encodeURIComponent(subscriber.email)}`;
-                    
+
                     await this.emailService.sendNewPostNotification(
                         subscriber.email,
                         {
@@ -60,8 +62,6 @@ class SubscriptionNotificationUtils {
                     failed++;
                 }
             });
-
-            await Promise.allSettled(emailPromises);
 
             return { sent, failed };
         } catch (error) {
@@ -95,11 +95,12 @@ class SubscriptionNotificationUtils {
             let sent = 0;
             let failed = 0;
 
-            // Send emails to all subscribers
-            const emailPromises = subscribers.map(async (subscriber) => {
+            // Send emails to all subscribers, paced to stay under the email
+            // provider's per-second rate limit (Resend allows 10/s).
+            await forEachRateLimited(subscribers, async (subscriber) => {
                 try {
                     const unsubscribeUrl = `${config.CORS_ORIGIN}/subscription/unsubscribe?email=${encodeURIComponent(subscriber.email)}`;
-                    
+
                     await this.emailService.sendNotificationEmail(
                         subscriber.email,
                         {
@@ -117,8 +118,6 @@ class SubscriptionNotificationUtils {
                     failed++;
                 }
             });
-
-            await Promise.allSettled(emailPromises);
 
             return { sent, failed };
         } catch (error) {
